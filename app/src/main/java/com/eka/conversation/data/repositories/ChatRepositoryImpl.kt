@@ -1,0 +1,159 @@
+package com.eka.conversation.data.repositories
+
+import android.util.Log
+import com.eka.conversation.ChatInit
+import com.eka.conversation.common.Response
+import com.eka.conversation.data.local.db.ChatDatabase
+import com.eka.conversation.data.local.db.entities.MessageEntity
+import com.eka.conversation.data.local.db.entities.MessageFile
+import com.eka.conversation.data.remote.api.EventListener
+import com.eka.conversation.data.remote.api.RetrofitClient
+import com.eka.conversation.data.remote.api.SSEClient
+import com.eka.conversation.data.remote.models.QueryPostRequest
+import com.eka.conversation.data.remote.models.QueryPostResponse
+import com.eka.conversation.domain.repositories.ChatRepository
+import com.google.gson.Gson
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.withContext
+import okhttp3.Call
+import okhttp3.Callback
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.ResponseBody
+import okio.use
+import java.io.IOException
+
+class ChatRepositoryImpl(
+    private val chatDatabase : ChatDatabase
+) : ChatRepository{
+    override suspend fun insertMessages(messages: List<MessageEntity>) {
+        withContext(Dispatchers.IO) {
+            try {
+                chatDatabase.messageDao().insertMessages(messages = messages)
+            }
+            catch (_ : Exception) {
+            }
+        }
+    }
+
+    override suspend fun updateMessage(message: MessageEntity) {
+        withContext(Dispatchers.IO) {
+            try {
+                chatDatabase.messageDao().updateMessage(message = message)
+            }
+            catch (_ : Exception) {
+            }
+        }
+    }
+
+    override suspend fun getLastSessionId(): Flow<String> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val response = chatDatabase.messageDao().getLastSessionId()
+                response
+            } catch (_ : Exception) {
+                flow{}
+            }
+        }
+    }
+
+    override fun getSearchResult(query: String): Flow<List<MessageEntity>> {
+        try {
+            val buildQuery = "*${query}*"
+            val response = chatDatabase.messageDao().searchMessages(buildQuery)
+            return response
+        } catch (_ : Exception) {
+            return flow{}
+        }
+    }
+
+    override fun getMessagesBySessionId(sessionId: String): Response<Flow<List<MessageEntity>>> {
+        return try {
+            val response = chatDatabase.messageDao().getMessagesBySessionId(sessionId = sessionId)
+            Response.Success(data = response)
+        } catch (e : Exception) {
+            Response.Error(message = e.message.toString())
+        }
+    }
+
+    override suspend fun getMessageById(msgId: Int, sessionId: String): Response<Flow<MessageEntity>> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val response = chatDatabase.messageDao().getMessageById(msgId = msgId,sessionId = sessionId)
+                if(response == null) {
+                    Response.Error("Something went wrong!")
+                } else {
+                    Response.Success(data = response)
+                }
+            } catch (e : Exception) {
+                Response.Error(message = e.message.toString())
+            }
+        }
+    }
+
+    override suspend fun getLastMessagesOfEachSessionId(): Response<List<MessageEntity>> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val res = chatDatabase.messageDao().getAllLastMessagesOfEachSession()
+                Response.Success(data = res)
+            } catch (e : Exception) {
+                Response.Error(message = e.message.toString())
+            }
+        }
+    }
+
+    override suspend fun deleteMessagesBySessionId(sessionId: String) {
+        TODO("Not yet implemented")
+    }
+
+    override suspend fun deleteMessageById(localMsgId: Int) {
+        TODO("Not yet implemented")
+    }
+
+    override suspend fun insertFiles(files: List<MessageFile>) {
+        TODO("Not yet implemented")
+    }
+
+    override suspend fun deleteFiles(files: List<MessageFile>): Response<Boolean> {
+        TODO("Not yet implemented")
+    }
+
+    override suspend fun getFileById(fileId: Int): Response<MessageFile> {
+        TODO("Not yet implemented")
+    }
+
+    override suspend fun queryPost(queryPostRequest: QueryPostRequest): Flow<String> = flow {
+        try {
+            val networkConfiguration = ChatInit.getChatInitConfiguration().networkConfiguration
+            val networkHeaders = networkConfiguration.headers
+            networkHeaders.put("Accept","text/event-stream")
+            networkHeaders.put("Content-Type","application/json")
+            val url = networkConfiguration.baseUrl + networkConfiguration.aiBotEndpoint
+            val res = RetrofitClient.chatApiService.postQuery(
+                params = queryPostRequest.queryParams,
+                body = queryPostRequest.body,
+                headers = networkHeaders,
+                url = url
+            )
+
+            if(res.isSuccessful) {
+                res.body()?.source()?.let { source ->
+                    while (!source.exhausted()) {
+                        val line = source.readUtf8Line()
+                        if (line != null && line.startsWith("data:")) {
+                            val eventData = line.removePrefix("data:").trim()
+                            emit(eventData)
+                        }
+                    }
+                }
+            } else {
+                throw IOException("Network Error: ${res.code()}")
+            }
+        } catch (e : Exception) {
+            Log.d("ChatRepo","Network Error: ${e.message.toString()}")
+        }
+    }.flowOn(Dispatchers.IO)
+}
