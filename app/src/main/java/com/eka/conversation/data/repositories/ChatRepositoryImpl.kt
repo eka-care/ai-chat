@@ -6,9 +6,7 @@ import com.eka.conversation.common.Response
 import com.eka.conversation.data.local.db.ChatDatabase
 import com.eka.conversation.data.local.db.entities.MessageEntity
 import com.eka.conversation.data.local.db.entities.MessageFile
-import com.eka.conversation.data.remote.api.EventListener
 import com.eka.conversation.data.remote.api.RetrofitClient
-import com.eka.conversation.data.remote.api.SSEClient
 import com.eka.conversation.data.remote.models.QueryPostRequest
 import com.eka.conversation.data.remote.models.QueryPostResponse
 import com.eka.conversation.domain.repositories.ChatRepository
