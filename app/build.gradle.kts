@@ -27,6 +27,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            buildConfigField("boolean", "IS_DEBUG", "true")
         }
         release {
             isMinifyEnabled = false
@@ -34,6 +35,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            buildConfigField("boolean", "IS_DEBUG", "false")
         }
     }
     kotlin {
@@ -41,6 +43,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.1"
@@ -51,18 +54,6 @@ android {
         }
     }
 }
-
-//publishing {
-//    publications {
-//        create<MavenPublication>("release") {
-//            groupId = "com.eka.conversation"
-//            artifactId = "eka-conversation"
-//            version = "1.0.0"
-//
-//            artifact("../app/build/outputs/aar/app-release.aar")
-//        }
-//    }
-//}
 
 afterEvaluate {
     publishing {

@@ -1,6 +1,7 @@
 package com.eka.conversation.data.remote.api
 
 import android.util.Log
+import com.eka.conversation.BuildConfig
 import com.eka.conversation.ChatInit
 import com.moczul.ok2curl.CurlInterceptor
 import com.moczul.ok2curl.logger.Logger
@@ -42,11 +43,13 @@ class RetrofitClient {
         builder.readTimeout(60, TimeUnit.SECONDS)
         builder.writeTimeout(60, TimeUnit.SECONDS)
         builder.retryOnConnectionFailure(true)
-        builder.addInterceptor(CurlInterceptor(object : Logger {
-            override fun log(message: String) {
-                Log.v("ChatSDK", message)
-            }
-        }))
+        if(BuildConfig.IS_DEBUG) {
+            builder.addInterceptor(CurlInterceptor(object : Logger {
+                override fun log(message: String) {
+                    Log.v("ChatSDK", message)
+                }
+            }))
+        }
 
         val okHttpClient = builder.build()
 

@@ -102,6 +102,7 @@ class ChatViewModel(
                 }
                 is Response.Error -> {
                 }
+                else ->{}
             }
         }
     }

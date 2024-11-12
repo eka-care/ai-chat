@@ -30,12 +30,6 @@ fun ReceiveMessageContainer(
             ),
             content = {
                 ChatMarkDownText(text = messageContent.text.toString())
-//                Text(
-//                    modifier = Modifier.padding(16.dp),
-//                    text = messageContent.text!!,
-//                    style = styleBody2Regular,
-//                    color = Gray900
-//                )
             },
             background = Color.White
         )
