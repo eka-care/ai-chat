@@ -3,26 +3,21 @@ package com.eka.conversation.ui.presentation.viewmodels
 import android.app.Application
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.eka.conversation.common.Response
 import com.eka.conversation.common.Utils
 import com.eka.conversation.data.local.db.ChatDatabase
 import com.eka.conversation.data.local.db.entities.MessageEntity
 import com.eka.conversation.data.local.db.entities.models.MessageRole
-import com.eka.conversation.data.remote.models.QueryPostBody
 import com.eka.conversation.data.remote.models.QueryPostRequest
 import com.eka.conversation.data.remote.models.QueryResponseEvent
 import com.eka.conversation.data.repositories.ChatRepositoryImpl
 import com.eka.conversation.domain.repositories.ChatRepository
 import com.eka.conversation.ui.presentation.states.ChatUiState
-import com.google.gson.Gson
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.last
 import kotlinx.coroutines.launch
 
 class ChatViewModel(
@@ -41,6 +36,9 @@ class ChatViewModel(
 
     private val _chatScreenUiState = MutableStateFlow<ChatUiState>(ChatUiState.ChatInitLoading)
     val chatScreenUiState = _chatScreenUiState.asStateFlow()
+
+    private val _enterButtonEnableState = MutableStateFlow<Boolean>(true)
+    val enterButtonEnableState = _enterButtonEnableState.asStateFlow()
 
     private val _lastMessagesSession = MutableStateFlow<List<MessageEntity>?>(null)
     val lastMessagesSession = _lastMessagesSession.asStateFlow()
@@ -117,13 +115,13 @@ class ChatViewModel(
 
     fun queryPost(newMsgId : Int,queryPostRequest: QueryPostRequest) {
         viewModelScope.launch {
+            _enterButtonEnableState.value = false
             lastQueryPostRequest = queryPostRequest
             insertQueryInLocalDatabase(newMsgId, queryPostRequest)
             _updateCurrentSessionId.value = true
             chatRepository.queryPost(queryPostRequest = queryPostRequest).collect {
                 Log.d("ChatViewModel","Event Collected! ${it}")
-                val eventData : QueryResponseEvent = Gson().fromJson(it,QueryResponseEvent::class.java)
-                handleEventData(eventData)
+                handleEventData(it)
             }
         }
     }
@@ -153,6 +151,10 @@ class ChatViewModel(
     }
 
     private fun handleEventData(eventData: QueryResponseEvent) {
+        if (eventData.isLastEvent) {
+            _enterButtonEnableState.value = true
+            return
+        }
         if(eventData.msgId == null || eventData.overwrite == null || eventData.text == null) {
             _lastQueryResponse.value = Response.Error(message = "Something went wrong!")
             return

@@ -41,6 +41,7 @@ fun ChatScreen(
     val lastMessagesForEachSession by viewModel.lastMessagesSession.collectAsState(initial = null)
     val currentSessionId by viewModel.currentSessionId.collectAsState()
     var messages by remember { mutableStateOf<List<MessageEntity>>(emptyList()) }
+    val enterButtonEnableState by viewModel.enterButtonEnableState.collectAsState()
     var textInputState by remember {
         mutableStateOf("")
     }
@@ -73,17 +74,25 @@ fun ChatScreen(
             },
             bottomSectionConfiguration = bottomSectionConfiguration.copy(
                 onTrailingIconClick = {
-                    if(Utils.isNetworkAvailable(context = context)) {
-                        if (textInputState.trim().isNotEmpty()) {
-                            askNewQuery(
-                                newMsgId = getNewMsgId(messages),
-                                textInput = textInputState,
-                                viewModel = viewModel,
-                                params = chatInitConfiguration.networkConfiguration.params
-                            )
+                    if (enterButtonEnableState) {
+                        if (Utils.isNetworkAvailable(context = context)) {
+                            if (textInputState.trim().isNotEmpty()) {
+                                askNewQuery(
+                                    newMsgId = getNewMsgId(messages),
+                                    textInput = textInputState,
+                                    viewModel = viewModel,
+                                    params = chatInitConfiguration.networkConfiguration.params
+                                )
+                            }
+                        } else {
+                            Toast.makeText(context, "No Internet!", Toast.LENGTH_SHORT).show()
                         }
                     } else {
-                        Toast.makeText(context, "No Internet!", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(
+                            context,
+                            "Please wait until previous response is completed!",
+                            Toast.LENGTH_SHORT
+                        ).show()
                     }
                 }
             )

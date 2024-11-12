@@ -8,7 +8,7 @@ import com.eka.conversation.data.local.db.entities.MessageEntity
 import com.eka.conversation.data.local.db.entities.MessageFile
 import com.eka.conversation.data.remote.api.RetrofitClient
 import com.eka.conversation.data.remote.models.QueryPostRequest
-import com.eka.conversation.data.remote.models.QueryPostResponse
+import com.eka.conversation.data.remote.models.QueryResponseEvent
 import com.eka.conversation.domain.repositories.ChatRepository
 import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
@@ -16,13 +16,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.withContext
-import okhttp3.Call
-import okhttp3.Callback
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.RequestBody.Companion.toRequestBody
-import okhttp3.ResponseBody
-import okio.use
-import java.io.IOException
 
 class ChatRepositoryImpl(
     private val chatDatabase : ChatDatabase
@@ -123,7 +116,8 @@ class ChatRepositoryImpl(
         TODO("Not yet implemented")
     }
 
-    override suspend fun queryPost(queryPostRequest: QueryPostRequest): Flow<String> = flow {
+    override suspend fun queryPost(queryPostRequest: QueryPostRequest): Flow<QueryResponseEvent> =
+        flow {
         try {
             val networkConfiguration = ChatInit.getChatInitConfiguration().networkConfiguration
             val networkHeaders = networkConfiguration.headers
@@ -137,20 +131,33 @@ class ChatRepositoryImpl(
                 url = url
             )
 
+            var lastEventData: QueryResponseEvent? = null
+
             if(res.isSuccessful) {
                 res.body()?.source()?.let { source ->
                     while (!source.exhausted()) {
                         val line = source.readUtf8Line()
                         if (line != null && line.startsWith("data:")) {
                             val eventData = line.removePrefix("data:").trim()
-                            emit(eventData)
+                            val eventResponseData: QueryResponseEvent =
+                                Gson().fromJson(eventData, QueryResponseEvent::class.java)
+                            eventResponseData.isLastEvent = false
+                            lastEventData = eventResponseData
+                            lastEventData?.let {
+                                emit(it)
+                            }
                         }
                     }
                 }
+                lastEventData?.let {
+                    it.isLastEvent = true
+                    emit(it)
+                }
             } else {
-                throw IOException("Network Error: ${res.code()}")
+                emit(QueryResponseEvent(msgId = 0, overwrite = true, text = "", isLastEvent = true))
             }
         } catch (e : Exception) {
+            emit(QueryResponseEvent(msgId = 0, overwrite = true, text = "", isLastEvent = true))
             Log.d("ChatRepo","Network Error: ${e.message.toString()}")
         }
     }.flowOn(Dispatchers.IO)

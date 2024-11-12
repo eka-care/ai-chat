@@ -11,5 +11,6 @@ data class QueryResponseEvent(
     @SerializedName("overwrite")
     val overwrite: Boolean?,
     @SerializedName("text")
-    val text: String?
+    val text: String?,
+    var isLastEvent: Boolean = false
 )
