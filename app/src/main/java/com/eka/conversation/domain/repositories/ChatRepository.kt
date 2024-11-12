@@ -4,7 +4,7 @@ import com.eka.conversation.common.Response
 import com.eka.conversation.data.local.db.entities.MessageEntity
 import com.eka.conversation.data.local.db.entities.MessageFile
 import com.eka.conversation.data.remote.models.QueryPostRequest
-import com.eka.conversation.data.remote.models.QueryPostResponse
+import com.eka.conversation.data.remote.models.QueryResponseEvent
 import kotlinx.coroutines.flow.Flow
 
 interface ChatRepository {
@@ -24,5 +24,5 @@ interface ChatRepository {
     suspend fun getFileById(fileId : Int) : Response<MessageFile>
 
     //remote
-    suspend fun queryPost(queryPostRequest: QueryPostRequest) : Flow<String>
+    suspend fun queryPost(queryPostRequest: QueryPostRequest): Flow<QueryResponseEvent>
 }
