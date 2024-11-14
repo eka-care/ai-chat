@@ -1,10 +1,7 @@
 package com.eka.conversation.ui.presentation.screens
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,12 +16,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -35,11 +28,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.text.style.LineHeightStyle
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.eka.conversation.common.Utils
 import com.eka.conversation.data.local.db.entities.MessageEntity
 import com.eka.conversation.ui.presentation.components.ChatScreenTopBar
@@ -48,10 +37,7 @@ import com.eka.conversation.ui.presentation.components.ThreadSessionItem
 import com.eka.conversation.ui.presentation.models.ThreadScreenConfiguration
 import com.eka.conversation.ui.presentation.models.TopBarConfiguration
 import com.eka.conversation.ui.presentation.viewmodels.ChatViewModel
-import com.eka.conversation.ui.theme.Gray100
-import com.eka.conversation.ui.theme.Gray300
 import com.eka.conversation.ui.theme.Gray700
-import com.eka.conversation.ui.theme.Gray900
 import com.eka.conversation.ui.theme.styleTitlesHeadLine
 
 @Composable
@@ -150,8 +136,6 @@ fun ThreadScreen(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(color = Gray100)
-                .padding(16.dp)
         ){
             if(threadScreenConfiguration.newChatButton == null) {
                 NewChatButton(

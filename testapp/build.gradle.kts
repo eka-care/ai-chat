@@ -1,18 +1,20 @@
 plugins {
-//    id("com.android.application")
-    id("com.android.library")
+    id("com.android.application")
     id("maven-publish")
     id("kotlin-kapt")
     alias(libs.plugins.jetbrains.kotlin.android)
 }
 
 android {
-    namespace = "com.eka.conversation"
+    namespace = "com.eka.testapp"
     compileSdk = 34
 
     defaultConfig {
+        applicationId = "com.eka.testapp"
         minSdk = 23
         targetSdk = 34
+        versionCode = 1
+        versionName = "1.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -21,21 +23,12 @@ android {
     }
 
     buildTypes {
-        debug {
-            isMinifyEnabled = false
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
-            buildConfigField("boolean", "IS_DEBUG", "true")
-        }
         release {
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            buildConfigField("boolean", "IS_DEBUG", "false")
         }
     }
     kotlin {
@@ -55,34 +48,8 @@ android {
     }
 }
 
-//publishing {
-//    publications {
-//        create<MavenPublication>("release") {
-//            groupId = "com.eka.conversation"
-//            artifactId = "eka-conversation"
-//            version = "1.0.6"
-//
-//            artifact("../app/build/outputs/aar/app-release.aar")
-//        }
-//    }
-//}
-
-afterEvaluate {
-    publishing {
-        publications {
-            create<MavenPublication>("release") {
-                from(components["release"])
-
-                groupId = "com.eka.conversation"
-                artifactId = "eka-conversation"
-                version = "1.0.4"
-            }
-        }
-    }
-}
-
 dependencies {
-
+    implementation(project(":app"))
     implementation(libs.androidx.activity.compose)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.ui.tooling.preview)
@@ -92,14 +59,8 @@ dependencies {
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
-    implementation(libs.room.runtime)
-    implementation(libs.room.ktx)
-    kapt(libs.room.compiler)
-    implementation(libs.gson)
+
     implementation(libs.squareup.retrofit)
     implementation(libs.converter.gson)
     implementation(libs.logging.interceptor)
-    implementation(libs.androidx.navigation.compose)
-    implementation(libs.compose.markdown)
-    implementation("com.github.mrmike:ok2curl:0.8.0")
 }
