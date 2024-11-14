@@ -16,7 +16,7 @@ import com.eka.conversation.ui.theme.Gray100
 @Keep
 data class ThreadScreenConfiguration(
     val modifier: Modifier = Modifier,
-    val topBar : @Composable (() -> Unit)? = null,
+    val topBarConfiguration: TopBarConfiguration? = null,
     val newChatButton : @Composable (() -> Unit)? = null,
     val onNewChatClick : () -> Unit,
     val threadItem : @Composable ((MessageContent) -> Unit)? = null,
@@ -25,7 +25,7 @@ data class ThreadScreenConfiguration(
     companion object {
         fun defaults(
             modifier: Modifier = Modifier,
-            topBar : @Composable (() -> Unit)? = null,
+            topBarConfiguration: TopBarConfiguration? = null,
             newChatButton : @Composable (() -> Unit)? = null,
             onNewChatClick : (() -> Unit)? = null,
             threadItem : @Composable ((MessageContent) -> Unit)? = null,
@@ -33,7 +33,7 @@ data class ThreadScreenConfiguration(
         ) : ThreadScreenConfiguration {
             return ThreadScreenConfiguration(
                 modifier = modifier,
-                topBar = topBar,
+                topBarConfiguration = topBarConfiguration,
                 onNewChatClick = onNewChatClick ?: {},
                 newChatButton = newChatButton ?: {
                     Box(
