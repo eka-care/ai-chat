@@ -66,7 +66,7 @@ fun ThreadScreen(
             .fillMaxSize()
             .background(Color.White)
     ) {
-        if(threadScreenConfiguration.topBar == null) {
+        if (threadScreenConfiguration.topBarConfiguration == null) {
             ChatScreenTopBar(
                 topBarConfiguration = TopBarConfiguration.defaults(
                     subTitle = { },
@@ -85,7 +85,14 @@ fun ThreadScreen(
                 )
             )
         } else {
-            threadScreenConfiguration.topBar.invoke()
+            ChatScreenTopBar(
+                topBarConfiguration = threadScreenConfiguration.topBarConfiguration.copy(
+                    onLeadingIconClick = {
+                        goBackToChatScreen.invoke()
+                        threadScreenConfiguration.topBarConfiguration.onLeadingIconClick.invoke()
+                    }
+                )
+            )
         }
 
         Spacer(modifier = Modifier.height(16.dp))

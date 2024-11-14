@@ -10,12 +10,16 @@ import androidx.compose.material.icons.rounded.Send
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.eka.conversation.ChatInit
 import com.eka.conversation.common.models.ChatInitConfiguration
 import com.eka.conversation.common.models.NetworkConfiguration
 import com.eka.conversation.ui.presentation.models.BottomSectionConfiguration
 import com.eka.conversation.ui.presentation.models.ChatInputAreaConfiguration
+import com.eka.conversation.ui.presentation.models.ThreadScreenConfiguration
+import com.eka.conversation.ui.presentation.models.TopBarConfiguration
+import com.eka.conversation.ui.theme.styleTitlesSubheadLine
 
 class TestAppActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -64,6 +68,27 @@ class TestAppActivity : ComponentActivity() {
                     ),
                     trailingIcon = null,
                     isSubmitIconInsideChatInputArea = true
+                ),
+                threadScreenConfiguration = ThreadScreenConfiguration.defaults(
+                    topBarConfiguration = TopBarConfiguration.defaults(
+                        subTitle = { },
+                        title = {
+                            Text(
+                                text = "Chat History",
+                                style = styleTitlesSubheadLine,
+//                                color = TextPrimary,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 8.dp),
+                                textAlign = TextAlign.Start
+                            )
+                        },
+                        onLeadingIconClick = { },
+                        trailingIcon = {
+
+                        },
+                        onTrailingIconClick = {}
+                    )
                 )
             ),
             context = this
