@@ -26,7 +26,7 @@ fun ConversationScreen(
         viewModel.getLastMessagesForEachSession()
     }
 
-    ChatBotTheme {
+    ChatBotTheme() {
         Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
             ChatBotNavHost(
                 navController = navController,

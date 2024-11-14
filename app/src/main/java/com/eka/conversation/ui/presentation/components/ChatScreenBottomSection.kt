@@ -1,7 +1,9 @@
 package com.eka.conversation.ui.presentation.components
 
+import android.content.Context
 import android.widget.Toast
-import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
@@ -53,7 +55,7 @@ fun ChatScreenBottomSection(
         bottomSectionConfiguration.chatInputAreaConfiguration.let { chatInputAreaConfig ->
             TextField(
                 modifier = chatInputAreaConfig.modifier
-                    .padding(8.dp)
+                    .padding(4.dp)
                     .weight(1f),
                 value = textInputState,
                 onValueChange = { newValue ->
@@ -63,11 +65,13 @@ fun ChatScreenBottomSection(
                 enabled = true,
                 shape = RoundedCornerShape(50),
                 colors = TextFieldDefaults.colors(
+                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
                     focusedContainerColor = Gray200,
                     unfocusedContainerColor = Gray200,
                     unfocusedIndicatorColor = Color.Transparent,
                     focusedIndicatorColor = Color.Transparent,
-                    disabledIndicatorColor = Color.Transparent
+                    disabledIndicatorColor = Color.Transparent,
                 ),
                 keyboardOptions = KeyboardOptions(
                     capitalization = KeyboardCapitalization.Sentences
@@ -76,22 +80,47 @@ fun ChatScreenBottomSection(
                     chatInputAreaConfig.hint?.invoke()
                 },
                 leadingIcon = chatInputAreaConfig.leadingIcon,
-                trailingIcon = chatInputAreaConfig.trailingIcon,
+                trailingIcon = {
+                    Box(
+                        modifier = Modifier
+                            .clickable {
+                                if (bottomSectionConfiguration.isSubmitIconInsideChatInputArea) {
+                                    onQuerySubmit(context, bottomSectionConfiguration)
+                                    textInputState = ""
+                                }
+                            }
+                    ) {
+                        chatInputAreaConfig.trailingIcon?.invoke()
+                    }
+                },
                 singleLine = true,
                 maxLines = 1
             )
         }
-        bottomSectionConfiguration.trailingIcon?.let {
-            IconButton(onClick = {
-                if(Utils.isNetworkAvailable(context = context)) {
-                    bottomSectionConfiguration.onTrailingIconClick.invoke()
-                    textInputState = ""
-                } else {
-                    Toast.makeText(context, "No Internet!", Toast.LENGTH_SHORT).show()
+        if (bottomSectionConfiguration.trailingIcon != null) {
+            bottomSectionConfiguration.trailingIcon.let {
+                Box(
+                    modifier = Modifier
+                        .clickable {
+                            if (!bottomSectionConfiguration.isSubmitIconInsideChatInputArea) {
+                                onQuerySubmit(context, bottomSectionConfiguration)
+                                textInputState = ""
+                            }
+                        }) {
+                    it.invoke()
                 }
-            }) {
-                it.invoke()
             }
         }
+    }
+}
+
+private fun onQuerySubmit(
+    context: Context,
+    bottomSectionConfiguration: BottomSectionConfiguration
+) {
+    if (Utils.isNetworkAvailable(context = context)) {
+        bottomSectionConfiguration.onTrailingIconClick.invoke()
+    } else {
+        Toast.makeText(context, "No Internet!", Toast.LENGTH_SHORT).show()
     }
 }
