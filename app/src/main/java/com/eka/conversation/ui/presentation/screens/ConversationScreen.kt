@@ -22,7 +22,7 @@ fun ConversationScreen(
     val chatInitConfiguration = ChatInit.getChatInitConfiguration()
 
     LaunchedEffect(Unit) {
-        viewModel.getLastSessionId()
+        viewModel.initNewChatSession()
         viewModel.getLastMessagesForEachSession()
     }
 
