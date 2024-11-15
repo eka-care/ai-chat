@@ -61,13 +61,9 @@ class ChatViewModel(
         updateCurrentSessionId(Utils.getNewSessionId())
     }
 
-    fun getLastSessionId() {
+    fun initNewChatSession() {
         viewModelScope.launch {
-            chatRepository.getLastSessionId().collect {
-                if(updateCurrentSessionId.value) {
-                    _currentSessionId.value = it
-                }
-            }
+            _currentSessionId.value = Utils.getNewSessionId()
         }
     }
 
@@ -115,13 +111,17 @@ class ChatViewModel(
 
     fun queryPost(newMsgId : Int,queryPostRequest: QueryPostRequest) {
         viewModelScope.launch {
+            val sessionIdForQuery = currentSessionId.value
             _enterButtonEnableState.value = false
             lastQueryPostRequest = queryPostRequest
             insertQueryInLocalDatabase(newMsgId, queryPostRequest)
             _updateCurrentSessionId.value = true
             chatRepository.queryPost(queryPostRequest = queryPostRequest).collect {
                 Log.d("ChatViewModel","Event Collected! ${it}")
-                handleEventData(it)
+                handleEventData(
+                    eventData = it,
+                    sessionIdForQuery
+                )
             }
         }
     }
@@ -150,7 +150,10 @@ class ChatViewModel(
         }
     }
 
-    private fun handleEventData(eventData: QueryResponseEvent) {
+    private fun handleEventData(
+        eventData: QueryResponseEvent,
+        sessionId: String
+    ) {
         if (eventData.isLastEvent) {
             _enterButtonEnableState.value = true
             return
@@ -163,7 +166,7 @@ class ChatViewModel(
             insertMessage(
                 message = MessageEntity(
                     msgId = eventData.msgId,
-                    sessionId = currentSessionId.value,
+                    sessionId = sessionId,
                     createdAt = Utils.getCurrentUTCEpochMillis(),
                     messageFiles = null,
                     messageText = eventData.text,
@@ -178,7 +181,7 @@ class ChatViewModel(
                     insertMessage(
                         message = MessageEntity(
                             msgId = eventData.msgId,
-                            sessionId = currentSessionId.value,
+                            sessionId = sessionId,
                             createdAt = Utils.getCurrentUTCEpochMillis(),
                             messageFiles = null,
                             messageText = combinedMessage,
