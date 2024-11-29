@@ -35,11 +35,12 @@ fun ChatScreen(
     topBarConfiguration: TopBarConfiguration = TopBarConfiguration.defaults(),
     bottomSectionConfiguration: BottomSectionConfiguration = BottomSectionConfiguration.defaults(),
     contentSectionConfiguration: ContentSectionConfiguration = ContentSectionConfiguration.defaults(),
-    viewModel: ChatViewModel
+    viewModel: ChatViewModel,
+    sessionId: String
 ) {
     val context = LocalContext.current.applicationContext
     val lastMessagesForEachSession by viewModel.lastMessagesSession.collectAsState(initial = null)
-    val currentSessionId by viewModel.currentSessionId.collectAsState()
+    var currentSessionId = sessionId
     var messages by remember { mutableStateOf<List<MessageEntity>>(emptyList()) }
     val enterButtonEnableState by viewModel.enterButtonEnableState.collectAsState()
     var textInputState by remember {
@@ -65,7 +66,8 @@ fun ChatScreen(
         ChatScreenContentSection(
             modifier = contentSectionConfiguration.modifier.weight(1f),
             contentSectionConfiguration = contentSectionConfiguration,
-            viewModel = viewModel
+            viewModel = viewModel,
+            sessionId = currentSessionId
         )
         ChatScreenBottomSection(
             modifier = bottomSectionConfiguration.modifier,
@@ -81,7 +83,8 @@ fun ChatScreen(
                                     newMsgId = getNewMsgId(messages),
                                     textInput = textInputState,
                                     viewModel = viewModel,
-                                    params = chatInitConfiguration.networkConfiguration.params
+                                    params = chatInitConfiguration.networkConfiguration.params,
+                                    sessionId = currentSessionId
                                 )
                             }
                         } else {
@@ -95,7 +98,9 @@ fun ChatScreen(
                         ).show()
                     }
                 }
-            )
+            ),
+            chatInitConfiguration = chatInitConfiguration,
+            viewModel = viewModel
         )
     }
 }
@@ -111,9 +116,10 @@ fun askNewQuery(
     newMsgId : Int,
     textInput : String,
     viewModel: ChatViewModel,
-    params : HashMap<String,String>
+    params: HashMap<String, String>,
+    sessionId: String
 ) {
-    params.put("session_id",viewModel.currentSessionId.value)
+    params.put("session_id", sessionId)
     viewModel.queryPost(
         newMsgId = newMsgId,
         QueryPostRequest(
@@ -126,6 +132,7 @@ fun askNewQuery(
                     )
                 )
             )
-        )
+        ),
+        sessionId = sessionId
     )
 }

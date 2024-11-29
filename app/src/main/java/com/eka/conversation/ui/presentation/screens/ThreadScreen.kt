@@ -43,6 +43,7 @@ import com.eka.conversation.ui.theme.styleTitlesHeadLine
 @Composable
 fun ThreadScreen(
     goBackToChatScreen: () -> Unit,
+    goToChatScreen: (String) -> Unit,
     viewModel: ChatViewModel,
     threadScreenConfiguration: ThreadScreenConfiguration = ThreadScreenConfiguration.defaults()
 ) {
@@ -122,8 +123,7 @@ fun ThreadScreen(
                             message = message,
                             threadScreenConfiguration = threadScreenConfiguration
                         ) {
-                            viewModel.updateCurrentSessionId(message.sessionId)
-                            goBackToChatScreen.invoke()
+                            goToChatScreen(message.sessionId)
                         }
                     }
                 }
@@ -133,8 +133,7 @@ fun ThreadScreen(
                         message = message,
                         threadScreenConfiguration = threadScreenConfiguration
                     ) {
-                        viewModel.updateCurrentSessionId(message.sessionId)
-                        goBackToChatScreen.invoke()
+                        goToChatScreen(message.sessionId)
                     }
                 }
             }
@@ -155,8 +154,7 @@ fun ThreadScreen(
                 modifier = Modifier
                     .matchParentSize()
                     .clickable {
-                        viewModel.createNewChatSession()
-                        goBackToChatScreen.invoke()
+                        goToChatScreen(Utils.getNewSessionId())
                         threadScreenConfiguration.onNewChatClick.invoke()
                     }
             )
