@@ -13,6 +13,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.eka.conversation.ChatInit
+import com.eka.conversation.common.models.AudioFeatureConfiguration
+import com.eka.conversation.common.models.AudioProcessorType
+import com.eka.conversation.common.models.ChatGeneralConfiguration
 import com.eka.conversation.common.models.ChatInitConfiguration
 import com.eka.conversation.common.models.NetworkConfiguration
 import com.eka.conversation.ui.presentation.models.BottomSectionConfiguration
@@ -26,14 +29,18 @@ class TestAppActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         ChatInit.initialize(
             chatInitConfiguration = ChatInitConfiguration(
+                chatGeneralConfiguration = ChatGeneralConfiguration(
+                    isChatFirstScreen = false
+                ),
+                audioFeatureConfiguration = AudioFeatureConfiguration(
+                    isEnabled = true,
+                    audioProcessor = CustomAudioProcessor(),
+                    audioProcessorType = AudioProcessorType.GOOGLE_SPEECH_RECOGNIZER
+                ),
                 networkConfiguration = NetworkConfiguration(
-                    params = hashMapOf(
-                        "d_oid" to "161467756044203",
-                        "d_hash" to "6d36c3ca25abe7d9f34b81727f03d719",
-                        "pt_oid" to "161857870651607",
-                    ),
-                    baseUrl = "https://lucid-ws.eka.care/",
-                    aiBotEndpoint = "doc_chat/v1/stream_chat",
+                    params = hashMapOf(),
+                    baseUrl = "",
+                    aiBotEndpoint = "",
                     headers = hashMapOf(),
                 ),
                 bottomSectionConfiguration = BottomSectionConfiguration(

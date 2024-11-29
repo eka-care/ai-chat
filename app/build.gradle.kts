@@ -75,7 +75,7 @@ afterEvaluate {
 
                 groupId = "com.eka.conversation"
                 artifactId = "eka-conversation"
-                version = "1.0.4"
+                version = "1.0.5"
             }
         }
     }

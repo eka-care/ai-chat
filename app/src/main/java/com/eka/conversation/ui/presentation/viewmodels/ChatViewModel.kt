@@ -4,34 +4,45 @@ import android.app.Application
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.eka.conversation.ChatInit
 import com.eka.conversation.common.Response
 import com.eka.conversation.common.Utils
+import com.eka.conversation.common.models.AudioProcessorType
 import com.eka.conversation.data.local.db.ChatDatabase
 import com.eka.conversation.data.local.db.entities.MessageEntity
+import com.eka.conversation.data.local.db.entities.models.MessageFileType
 import com.eka.conversation.data.local.db.entities.models.MessageRole
 import com.eka.conversation.data.remote.models.QueryPostRequest
 import com.eka.conversation.data.remote.models.QueryResponseEvent
 import com.eka.conversation.data.repositories.ChatRepositoryImpl
 import com.eka.conversation.domain.repositories.ChatRepository
+import com.eka.conversation.features.audio.AndroidAudioRecorder
+import com.eka.conversation.features.audio.DefaultAudioProcessor
 import com.eka.conversation.ui.presentation.states.ChatUiState
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
+import java.io.File
 
 class ChatViewModel(
-    app : Application
+    private val app: Application
 ) : AndroidViewModel(app) {
 
     companion object {
         lateinit var database : ChatDatabase
         lateinit var chatRepository: ChatRepository
+        lateinit var defaultAudioProcessor: DefaultAudioProcessor
+        lateinit var audioRecorder: AndroidAudioRecorder
+        var chatInitConfiguration = ChatInit.getChatInitConfiguration()
     }
 
     init {
         database = ChatDatabase.getDatabase(app)
         chatRepository = ChatRepositoryImpl(database)
+        defaultAudioProcessor = DefaultAudioProcessor(app)
+        audioRecorder = AndroidAudioRecorder(app)
     }
 
     private val _chatScreenUiState = MutableStateFlow<ChatUiState>(ChatUiState.ChatInitLoading)
@@ -43,12 +54,6 @@ class ChatViewModel(
     private val _lastMessagesSession = MutableStateFlow<List<MessageEntity>?>(null)
     val lastMessagesSession = _lastMessagesSession.asStateFlow()
 
-    private val _currentSessionId = MutableStateFlow<String>("")
-    val currentSessionId = _currentSessionId.asStateFlow()
-
-    private val _updateCurrentSessionId = MutableStateFlow<Boolean>(true)
-    val updateCurrentSessionId = _updateCurrentSessionId.asStateFlow()
-
     private val _lastQueryResponse = MutableStateFlow<Response<Boolean>>(Response.Loading())
     val lastQueryResponse = _lastQueryResponse.asStateFlow()
 
@@ -56,16 +61,10 @@ class ChatViewModel(
 
     var lastEventData : QueryResponseEvent? = null
 
-    fun createNewChatSession() {
-        _updateCurrentSessionId.value = false
-        updateCurrentSessionId(Utils.getNewSessionId())
-    }
+    var currentAudioFile: File? = null
 
-    fun initNewChatSession() {
-        viewModelScope.launch {
-            _currentSessionId.value = Utils.getNewSessionId()
-        }
-    }
+    var _currentTranscribeData = MutableStateFlow<Response<String>>(Response.Loading())
+    val currentTranscribeData = _currentTranscribeData.asStateFlow()
 
     fun searchMessages(query : String) : Flow<List<MessageEntity>> {
         val response = chatRepository.getSearchResult(query)
@@ -90,10 +89,6 @@ class ChatViewModel(
                 is Response.Success -> {
                     response.data?.let { lastMessages ->
                         _lastMessagesSession.value = lastMessages
-                        if(lastMessages.isNullOrEmpty()) {
-                            _updateCurrentSessionId.value = false
-                            updateCurrentSessionId(Utils.getNewSessionId())
-                        }
                     }
                 }
                 is Response.Error -> {
@@ -103,30 +98,26 @@ class ChatViewModel(
         }
     }
 
-    fun updateCurrentSessionId(sessionId: String) {
+    fun queryPost(newMsgId: Int, queryPostRequest: QueryPostRequest, sessionId: String) {
         viewModelScope.launch {
-            _currentSessionId.value = sessionId
-        }
-    }
-
-    fun queryPost(newMsgId : Int,queryPostRequest: QueryPostRequest) {
-        viewModelScope.launch {
-            val sessionIdForQuery = currentSessionId.value
             _enterButtonEnableState.value = false
             lastQueryPostRequest = queryPostRequest
-            insertQueryInLocalDatabase(newMsgId, queryPostRequest)
-            _updateCurrentSessionId.value = true
+            insertQueryInLocalDatabase(newMsgId, queryPostRequest, sessionId)
             chatRepository.queryPost(queryPostRequest = queryPostRequest).collect {
                 Log.d("ChatViewModel","Event Collected! ${it}")
                 handleEventData(
                     eventData = it,
-                    sessionIdForQuery
+                    sessionId
                 )
             }
         }
     }
 
-    private fun insertQueryInLocalDatabase(newMsgId: Int,queryPostRequest: QueryPostRequest) {
+    private fun insertQueryInLocalDatabase(
+        newMsgId: Int,
+        queryPostRequest: QueryPostRequest,
+        sessionId: String
+    ) {
         var lastMsgId = newMsgId
         queryPostRequest.body.messages?.let {
             if(it.isNotEmpty()) {
@@ -135,7 +126,7 @@ class ChatViewModel(
                         insertMessage(
                             message = MessageEntity(
                                 msgId = lastMsgId,
-                                sessionId = currentSessionId.value,
+                                sessionId = sessionId,
                                 createdAt = Utils.getCurrentUTCEpochMillis(),
                                 messageFiles = null,
                                 messageText = queryMessage.text,
@@ -204,6 +195,66 @@ class ChatViewModel(
     fun insertMessage(messageList : List<MessageEntity>) {
         viewModelScope.launch {
             chatRepository.insertMessages(messageList)
+        }
+    }
+
+    fun clearRecording() {
+        _currentTranscribeData.value = Response.Loading()
+        currentAudioFile = null
+    }
+
+    // Audio Feature
+    fun startAudioRecording() {
+        when (chatInitConfiguration.audioFeatureConfiguration.audioProcessorType) {
+            AudioProcessorType.CUSTOM -> {
+                currentAudioFile =
+                    File(app.filesDir, "${Utils.getNewFileName(MessageFileType.AUDIO)}.m4a")
+                audioRecorder.startRecording(currentAudioFile!!, onError = { error ->
+                    _currentTranscribeData.value = Response.Error(message = error)
+                })
+            }
+
+            AudioProcessorType.VOSK -> {
+            }
+
+            AudioProcessorType.GOOGLE_SPEECH_RECOGNIZER -> {
+                defaultAudioProcessor.processAudio(audioFile = null) { response ->
+                    _currentTranscribeData.value = response
+                }
+            }
+
+            else -> {
+                throw IllegalStateException("Invalid processor type")
+            }
+        }
+    }
+
+    fun stopAudioRecordingInFileIfStarted() {
+        audioRecorder.stopRecording()
+    }
+
+    fun stopAudioRecording() {
+        when (chatInitConfiguration.audioFeatureConfiguration.audioProcessorType) {
+            AudioProcessorType.CUSTOM -> {
+                audioRecorder.stopRecording()
+                chatInitConfiguration.audioFeatureConfiguration.audioProcessor?.let {
+                    it.processAudio(currentAudioFile!!) { response ->
+                        _currentTranscribeData.value = response
+                    }
+                }
+            }
+
+            AudioProcessorType.VOSK -> {
+            }
+
+            AudioProcessorType.GOOGLE_SPEECH_RECOGNIZER -> {
+                // File is not needed for Google Speech Recognizer
+                defaultAudioProcessor.stopRecordingAndTranscribing()
+            }
+
+            else -> {
+                throw IllegalStateException("Invalid processor type")
+            }
         }
     }
 }

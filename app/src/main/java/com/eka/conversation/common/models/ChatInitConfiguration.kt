@@ -6,6 +6,8 @@ import com.eka.conversation.ui.presentation.models.ThreadScreenConfiguration
 import com.eka.conversation.ui.presentation.models.TopBarConfiguration
 
 data class ChatInitConfiguration(
+    val chatGeneralConfiguration: ChatGeneralConfiguration,
+    val audioFeatureConfiguration: AudioFeatureConfiguration = AudioFeatureConfiguration(),
     val networkConfiguration: NetworkConfiguration,
     val topBarConfiguration: TopBarConfiguration? = null,
     val contentSectionConfiguration: ContentSectionConfiguration? = null,

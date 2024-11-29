@@ -10,6 +10,7 @@ import androidx.navigation.compose.rememberNavController
 import com.eka.conversation.ChatInit
 import com.eka.conversation.ui.presentation.viewmodels.ChatViewModel
 import com.eka.conversation.ui.routes.ChatBotNavHost
+import com.eka.conversation.ui.routes.Screen
 import com.eka.conversation.ui.theme.ChatBotTheme
 
 @Composable
@@ -20,9 +21,12 @@ fun ConversationScreen(
     val navController =  rememberNavController()
 
     val chatInitConfiguration = ChatInit.getChatInitConfiguration()
+    var initialScreen: Screen = Screen.Threads
+    if (chatInitConfiguration.chatGeneralConfiguration.isChatFirstScreen) {
+        initialScreen = Screen.Chat
+    }
 
     LaunchedEffect(Unit) {
-        viewModel.initNewChatSession()
         viewModel.getLastMessagesForEachSession()
     }
 
@@ -32,7 +36,8 @@ fun ConversationScreen(
                 navController = navController,
                 chatViewModel = viewModel,
                 onBackPressedDispatcher = onBackPressedDispatcher,
-                chatInitConfiguration = chatInitConfiguration
+                chatInitConfiguration = chatInitConfiguration,
+                initialScreen = initialScreen
             )
         }
     }

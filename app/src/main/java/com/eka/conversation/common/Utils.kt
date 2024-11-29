@@ -6,6 +6,7 @@ import android.net.NetworkCapabilities
 import android.os.Build
 import com.eka.conversation.data.local.db.entities.MessageEntity
 import com.eka.conversation.data.local.db.entities.models.MessageContent
+import com.eka.conversation.data.local.db.entities.models.MessageFileType
 import java.util.Calendar
 import java.util.TimeZone
 import java.util.UUID
@@ -18,6 +19,16 @@ object Utils {
 
     fun getNewSessionId() : String {
         return UUID.randomUUID().toString() + "_" + getCurrentUTCEpochMillis()
+    }
+
+    fun getNewFileName(fileType: MessageFileType): String {
+        return getCurrentUTCEpochMillis().toString() + "_" + fileType.name
+    }
+
+    fun formatMillisToMinutesSeconds(milliseconds: Long): String {
+        val minutes = milliseconds / 1000 / 60
+        val seconds = (milliseconds / 1000) % 60
+        return String.format("%02d:%02d", minutes, seconds)
     }
 
     fun convertToMessageContent(messageEntity: MessageEntity): MessageContent {
