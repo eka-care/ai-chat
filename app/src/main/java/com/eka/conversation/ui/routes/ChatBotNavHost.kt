@@ -17,58 +17,6 @@ import com.eka.conversation.ui.presentation.screens.ChatScreen
 import com.eka.conversation.ui.presentation.screens.ThreadScreen
 import com.eka.conversation.ui.presentation.viewmodels.ChatViewModel
 
-//@Composable
-//fun ChatBotNavHost(
-//    navController: NavHostController,
-//    chatViewModel : ChatViewModel,
-//    chatInitConfiguration: ChatInitConfiguration,
-//    onBackPressedDispatcher : OnBackPressedDispatcher,
-//    initialScreen : Screen = Screen.Chat
-//) {
-//    NavHost(navController = navController, startDestination = initialScreen.route) {
-//        composable(
-//            route = Screen.Chat.route,
-//            arguments = listOf(navArgument("sessionId") { type = NavType.StringType; nullable = true }
-//        ) { backStackEntry ->
-//            val sessionId = backStackEntry.arguments?.getString("sessionId")
-//            ChatScreen(
-//                viewModel = chatViewModel,
-//                topBarConfiguration = chatInitConfiguration.topBarConfiguration?.copy(
-//                    onTrailingIconClick = {
-//                        navController.navigate(Screen.Threads.route)
-//                    },
-//                    onLeadingIconClick = {
-//                        chatInitConfiguration.topBarConfiguration.onLeadingIconClick.invoke()
-//                        onBackPressedDispatcher.onBackPressed()
-//                    },
-//                ) ?: TopBarConfiguration.defaults(
-//                    onLeadingIconClick = {
-//                         onBackPressedDispatcher.onBackPressed()
-//                    },
-//                    onTrailingIconClick = {
-//                        navController.navigate(Screen.Threads.route)
-//                    }
-//                ),
-//                bottomSectionConfiguration = chatInitConfiguration.bottomSectionConfiguration ?: BottomSectionConfiguration.defaults(),
-//                contentSectionConfiguration = chatInitConfiguration.contentSectionConfiguration ?: ContentSectionConfiguration.defaults(),
-//                sessionId = ""
-//            )
-//        }
-//        composable(Screen.Threads.route) { backStackEntry ->
-//            ThreadScreen(
-//                goBackToChatScreen = {
-//                    onBackPressedDispatcher.onBackPressed()
-//                },
-//                goToChatScreen = {
-//                    navController.navigate(Screen.Chat.route)
-//                },
-//                threadScreenConfiguration = chatInitConfiguration.threadScreenConfiguration ?: ThreadScreenConfiguration.defaults(),
-//                viewModel = chatViewModel
-//            )
-//        }
-//    }
-//}
-
 @Composable
 fun ChatBotNavHost(
     navController: NavHostController,
