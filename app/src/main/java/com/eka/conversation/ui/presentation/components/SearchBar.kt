@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
@@ -18,87 +19,75 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.eka.conversation.ui.theme.Gray200
 
 @Composable
 fun SearchBar(
-    onSearchItemClick : () -> Unit,
-    onQueryChange : (String) -> Unit,
+    query: String,
+    onQueryChanged: (String) -> Unit,
+    onClear: () -> Unit,
+    onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var query by remember { mutableStateOf("") }
-    Box(
+    val focusRequester = remember { FocusRequester() }
+    val keyboardController = LocalSoftwareKeyboardController.current
+
+    LaunchedEffect(Unit) {
+        focusRequester.requestFocus()
+        keyboardController?.show()
+    }
+
+    Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp)
-            .background(color = Gray200, RoundedCornerShape(50))
-            .padding(horizontal = 16.dp)
+            .padding(horizontal = 8.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(color = Gray200, RoundedCornerShape(50))
-                .clickable {
-                    onSearchItemClick.invoke()
-                }
-        ) {
-            TextField(
-                value = query,
-                onValueChange = { newValue ->
-                    query = newValue
-                    onQueryChange(query)
-                },
-                placeholder = {
-                    Text(text = "Search", color = Color.Gray)
-                },
-                singleLine = true,
-                modifier = Modifier.weight(1f),
-                maxLines = 1,
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.Search,
-                        contentDescription = "Search Icon",
-                        tint = Color.Gray
-                    )
-                },
-                colors = TextFieldDefaults.colors(
-                    focusedContainerColor = Color.Transparent,
-                    unfocusedContainerColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent,
-                    focusedIndicatorColor = Color.Transparent,
-                )
+        IconButton(onClick = onBack) {
+            Icon(
+                imageVector = Icons.Default.ArrowBack,
+                tint = Color.Black,
+                contentDescription = "Back"
             )
-            Spacer(modifier = Modifier.width(8.dp))
-            if (query.isNotEmpty()) {
-                IconButton(onClick = {
-                    query = ""
-                    onQueryChange(query)
-                }) {
-                    Icon(
-                        imageVector = Icons.Default.Close,
-                        contentDescription = "Clear Search",
-                        tint = Color.Gray
-                    )
-                }
-            }
+        }
+        TextField(
+            value = query,
+            onValueChange = onQueryChanged,
+            singleLine = true,
+            maxLines = 1,
+            modifier = Modifier
+                .weight(1f)
+                .focusRequester(focusRequester),
+            colors = TextFieldDefaults.colors(
+                disabledContainerColor = Color.Transparent,
+                unfocusedContainerColor = Color.Transparent,
+                focusedContainerColor = Color.Transparent,
+                focusedIndicatorColor = Color.Transparent,
+                unfocusedIndicatorColor = Color.Transparent,
+                disabledIndicatorColor = Color.Transparent,
+                focusedTextColor = Color(0xFF1D1B20),
+                unfocusedTextColor = Color(0xFF1D1B20),
+            )
+        )
+        IconButton(onClick = onClear) {
+            Icon(
+                imageVector = Icons.Default.Close,
+                tint = Color.Black,
+                contentDescription = "Clear"
+            )
         }
     }
-}
-
-@Preview
-@Composable
-fun searchPre() {
-    SearchBar(onSearchItemClick = { /*TODO*/ }, onQueryChange = {
-
-    })
 }

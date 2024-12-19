@@ -33,7 +33,7 @@ interface MessageDao {
 
     @Query("""
         SELECT * FROM ${Constants.MESSAGES_TABLE_NAME} WHERE (msg_id,session_id) IN (
-            SELECT msg_id,session_id FROM ${Constants.MESSAGES_FTS_TABLE_NAME} WHERE message_text MATCH :query
+            SELECT msg_id,session_id FROM ${Constants.MESSAGES_FTS_TABLE_NAME} WHERE message_text MATCH :query or chat_context MATCH :query
         )
     """)
     fun searchMessages(query: String): Flow<List<MessageEntity>>

@@ -49,7 +49,11 @@ fun ChatScreenContentSection(
         modifier = modifier
             .fillMaxSize()
     ) {
-        contentSectionConfiguration.backgroundImage.invoke()
+        if (messages.isNullOrEmpty()) {
+            contentSectionConfiguration.newChatBackground.invoke()
+        } else {
+            contentSectionConfiguration.background.invoke()
+        }
         LazyColumn(
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),

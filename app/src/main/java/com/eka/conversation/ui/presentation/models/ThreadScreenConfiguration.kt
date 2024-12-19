@@ -2,6 +2,7 @@ package com.eka.conversation.ui.presentation.models
 
 import androidx.annotation.Keep
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -16,26 +17,25 @@ import com.eka.conversation.ui.theme.Gray100
 @Keep
 data class ThreadScreenConfiguration(
     val modifier: Modifier = Modifier,
-    val topBarConfiguration: TopBarConfiguration? = null,
-    val newChatButton : @Composable (() -> Unit)? = null,
-    val onNewChatClick : () -> Unit,
+    val threadScreenTopBarConfiguration: ThreadsTopBarConfiguration = ThreadsTopBarConfiguration.defaults(),
+    val newChatButton: @Composable ((onNewChatClick: () -> Unit) -> Unit)? = null,
     val threadItem : @Composable ((MessageContent) -> Unit)? = null,
+    val searchItem: @Composable ((MessageContent) -> Unit)? = null,
     val searchBarConfiguration : SearchBarConfiguration = SearchBarConfiguration()
 ) {
     companion object {
         fun defaults(
             modifier: Modifier = Modifier,
-            topBarConfiguration: TopBarConfiguration? = null,
-            newChatButton : @Composable (() -> Unit)? = null,
-            onNewChatClick : (() -> Unit)? = null,
+            threadScreenTopBarConfiguration: ThreadsTopBarConfiguration = ThreadsTopBarConfiguration.defaults(),
+            newChatButton: @Composable ((onNewChatClick: () -> Unit) -> Unit)? = null,
             threadItem : @Composable ((MessageContent) -> Unit)? = null,
+            searchItem: @Composable ((MessageContent) -> Unit)? = null,
             searchBarConfiguration : SearchBarConfiguration = SearchBarConfiguration()
         ) : ThreadScreenConfiguration {
             return ThreadScreenConfiguration(
                 modifier = modifier,
-                topBarConfiguration = topBarConfiguration,
-                onNewChatClick = onNewChatClick ?: {},
-                newChatButton = newChatButton ?: {
+                threadScreenTopBarConfiguration = threadScreenTopBarConfiguration,
+                newChatButton = newChatButton ?: { onNewChatClick ->
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -43,11 +43,22 @@ data class ThreadScreenConfiguration(
                             .padding(16.dp)
                     ) {
                         NewChatButton(
-                            modifier = Modifier.padding(horizontal = 16.dp)
+                            modifier = Modifier.padding(horizontal = 16.dp),
+                            onClick = { }
                         )
+                        Box(modifier = Modifier
+                            .matchParentSize()
+                            .clickable {
+                                onNewChatClick.invoke()
+                            }) {}
                     }
                 },
                 threadItem = threadItem ?: { messageContent ->
+                    ThreadSessionItem(messageContent = messageContent) {
+
+                    }
+                },
+                searchItem = searchItem ?: { messageContent ->
                     ThreadSessionItem(messageContent = messageContent) {
 
                     }

@@ -43,11 +43,6 @@ fun SendMessageContainer(
     }
 }
 
-@Preview
-@Composable
-fun t() {
-    ReceiveMessageContainer(messageContent = MessageContent(role = MessageRole.USER, text = "Message sample"))
-}
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BorderCard(

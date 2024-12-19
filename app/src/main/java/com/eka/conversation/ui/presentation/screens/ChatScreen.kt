@@ -1,5 +1,6 @@
 package com.eka.conversation.ui.presentation.screens
 
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
@@ -32,7 +33,10 @@ import com.eka.conversation.ui.presentation.viewmodels.ChatViewModel
 @Composable
 fun ChatScreen(
     modifier: Modifier = Modifier,
-    topBarConfiguration: TopBarConfiguration = TopBarConfiguration.defaults(),
+    topBarConfiguration: TopBarConfiguration = TopBarConfiguration.defaults(
+        titleName = "General Chat",
+        subTitleName = "Ask anything!",
+    ),
     bottomSectionConfiguration: BottomSectionConfiguration = BottomSectionConfiguration.defaults(),
     contentSectionConfiguration: ContentSectionConfiguration = ContentSectionConfiguration.defaults(),
     viewModel: ChatViewModel,
@@ -46,11 +50,32 @@ fun ChatScreen(
     var textInputState by remember {
         mutableStateOf("")
     }
-    val chatInitConfiguration = ChatInit.getChatInitConfiguration()
+    var chatInitConfiguration = ChatInit.getChatInitConfiguration()
+    var chatContext by remember { mutableStateOf(chatInitConfiguration.chatGeneralConfiguration.chatContext) }
+    var chatSubContext by remember {
+        mutableStateOf(chatInitConfiguration.chatGeneralConfiguration.chatSubContext)
+    }
 
     LaunchedEffect(currentSessionId) {
         viewModel.getMessagesBySessionId(currentSessionId).collect { newMessages ->
             messages = newMessages
+            if (!messages.isNullOrEmpty()) {
+                chatContext = messages.first().chatContext.toString()
+                chatSubContext = messages.first().chatSubContext.toString()
+                Log.d("ChatSDK", "$chatContext $chatSubContext")
+            }
+            if (!messages.isNullOrEmpty() && messages.first().chatSessionConfig != null) {
+                val newNetworkConfiguration =
+                    chatInitConfiguration.chatGeneralConfiguration.onSessionInvokeNetworkConfiguration(
+                        messages.first().chatSessionConfig.toString()
+                    )
+                ChatInit.changeConfiguration(
+                    chatInitConfiguration.copy(
+                        networkConfiguration = newNetworkConfiguration
+                    )
+                )
+                chatInitConfiguration = ChatInit.getChatInitConfiguration()
+            }
         }
     }
 
@@ -61,7 +86,9 @@ fun ChatScreen(
     ) {
         ChatScreenTopBar(
             modifier = topBarConfiguration.modifier,
-            topBarConfiguration = topBarConfiguration
+            topBarConfiguration = topBarConfiguration,
+            title = if (messages.isNullOrEmpty()) topBarConfiguration.titleName else messages.first().chatContext.toString(),
+            subTitle = if (messages.isNullOrEmpty()) topBarConfiguration.subTitleName else messages.first().chatSubContext.toString(),
         )
         ChatScreenContentSection(
             modifier = contentSectionConfiguration.modifier.weight(1f),
@@ -84,7 +111,10 @@ fun ChatScreen(
                                     textInput = textInputState,
                                     viewModel = viewModel,
                                     params = chatInitConfiguration.networkConfiguration.params,
-                                    sessionId = currentSessionId
+                                    sessionId = currentSessionId,
+                                    chatContext = chatContext,
+                                    chatSubContext = chatSubContext,
+                                    chatSessionConfig = chatInitConfiguration.chatGeneralConfiguration.chatSessionConfig
                                 )
                             }
                         } else {
@@ -117,7 +147,10 @@ fun askNewQuery(
     textInput : String,
     viewModel: ChatViewModel,
     params: HashMap<String, String>,
-    sessionId: String
+    sessionId: String,
+    chatContext: String,
+    chatSubContext: String,
+    chatSessionConfig: String
 ) {
     params.put("session_id", sessionId)
     viewModel.queryPost(
@@ -133,6 +166,9 @@ fun askNewQuery(
                 )
             )
         ),
-        sessionId = sessionId
+        sessionId = sessionId,
+        chatContext = chatContext,
+        chatSubContext = chatSubContext,
+        chatSessionConfig = chatSessionConfig
     )
 }

@@ -18,18 +18,21 @@ data class MessageEntity(
     @ColumnInfo(name = "message_files") val messageFiles : List<Int>? = null,
     @ColumnInfo(name = "message_text") val messageText : String? = null,
     @ColumnInfo(name = "message_html_text") val htmlString : String? = null,
-    @ColumnInfo(name = "created_at") val createdAt : Long
+    @ColumnInfo(name = "created_at") val createdAt: Long,
+    @ColumnInfo(name = "chat_context") val chatContext: String? = null,
+    @ColumnInfo(name = "chat_sub_context") val chatSubContext: String? = null,
+    @ColumnInfo(name = "chat_session_config") val chatSessionConfig: String? = null
 )
 
 @Keep
 @Fts4(contentEntity = MessageEntity::class)
 @Entity(tableName = Constants.MESSAGES_FTS_TABLE_NAME)
 data class MessageFTSEntity(
-    @PrimaryKey
-    @ColumnInfo(name = "rowid") val rowid: Int,
     @ColumnInfo(name = "msg_id") val msgId : Int,
     @ColumnInfo(name = "session_id") val sessionId : String,
     @ColumnInfo(name = "message_text") val messageText: String,
+    @ColumnInfo(name = "chat_context") val chatContext: String? = null,
+    @ColumnInfo(name = "chat_sub_context") val chatSubContext: String? = null,
 )
 
 

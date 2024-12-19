@@ -9,5 +9,7 @@ data class MessageContent(
     @SerializedName("message_role") val role: MessageRole,
     @SerializedName("message_text") val text: String? = null,
     @SerializedName("message_files") val messageFiles: List<MessageFile>? = null,
-    @SerializedName("message_html") val htmlString: String? = null
+    @SerializedName("message_html") val htmlString: String? = null,
+    val chatContext: String? = null,
+    val createdAt: Long
 )

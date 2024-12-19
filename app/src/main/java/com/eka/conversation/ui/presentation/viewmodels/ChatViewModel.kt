@@ -1,6 +1,7 @@
 package com.eka.conversation.ui.presentation.viewmodels
 
 import android.app.Application
+import android.content.Context
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -30,13 +31,11 @@ class ChatViewModel(
     private val app: Application
 ) : AndroidViewModel(app) {
 
-    companion object {
-        lateinit var database : ChatDatabase
-        lateinit var chatRepository: ChatRepository
-        lateinit var defaultAudioProcessor: DefaultAudioProcessor
-        lateinit var audioRecorder: AndroidAudioRecorder
-        var chatInitConfiguration = ChatInit.getChatInitConfiguration()
-    }
+    var database: ChatDatabase
+    var chatRepository: ChatRepository
+    var defaultAudioProcessor: DefaultAudioProcessor
+    var audioRecorder: AndroidAudioRecorder
+    var chatInitConfiguration = ChatInit.getChatInitConfiguration()
 
     init {
         database = ChatDatabase.getDatabase(app)
@@ -98,16 +97,39 @@ class ChatViewModel(
         }
     }
 
-    fun queryPost(newMsgId: Int, queryPostRequest: QueryPostRequest, sessionId: String) {
+    fun onSortClick() {
+        if (!_lastMessagesSession.value.isNullOrEmpty()) {
+            _lastMessagesSession.value = _lastMessagesSession.value?.reversed()
+        }
+    }
+
+    fun queryPost(
+        newMsgId: Int,
+        queryPostRequest: QueryPostRequest,
+        sessionId: String,
+        chatContext: String,
+        chatSubContext: String,
+        chatSessionConfig: String,
+    ) {
         viewModelScope.launch {
             _enterButtonEnableState.value = false
             lastQueryPostRequest = queryPostRequest
-            insertQueryInLocalDatabase(newMsgId, queryPostRequest, sessionId)
+            insertQueryInLocalDatabase(
+                newMsgId,
+                queryPostRequest,
+                sessionId,
+                chatContext,
+                chatSubContext,
+                chatSessionConfig
+            )
             chatRepository.queryPost(queryPostRequest = queryPostRequest).collect {
                 Log.d("ChatViewModel","Event Collected! ${it}")
                 handleEventData(
                     eventData = it,
-                    sessionId
+                    sessionId = sessionId,
+                    chatContext = chatContext,
+                    chatSubContext = chatSubContext,
+                    chatSessionConfig = chatSessionConfig
                 )
             }
         }
@@ -116,7 +138,10 @@ class ChatViewModel(
     private fun insertQueryInLocalDatabase(
         newMsgId: Int,
         queryPostRequest: QueryPostRequest,
-        sessionId: String
+        sessionId: String,
+        chatContext: String,
+        chatSubContext: String,
+        chatSessionConfig: String
     ) {
         var lastMsgId = newMsgId
         queryPostRequest.body.messages?.let {
@@ -131,7 +156,10 @@ class ChatViewModel(
                                 messageFiles = null,
                                 messageText = queryMessage.text,
                                 htmlString = null,
-                                role = MessageRole.USER
+                                role = MessageRole.USER,
+                                chatContext = chatContext,
+                                chatSubContext = chatSubContext,
+                                chatSessionConfig = chatSessionConfig
                             )
                         )
                         lastMsgId += 1
@@ -143,7 +171,10 @@ class ChatViewModel(
 
     private fun handleEventData(
         eventData: QueryResponseEvent,
-        sessionId: String
+        sessionId: String,
+        chatContext: String,
+        chatSubContext: String,
+        chatSessionConfig: String
     ) {
         if (eventData.isLastEvent) {
             _enterButtonEnableState.value = true
@@ -162,7 +193,10 @@ class ChatViewModel(
                     messageFiles = null,
                     messageText = eventData.text,
                     htmlString = null,
-                    role = MessageRole.AI
+                    role = MessageRole.AI,
+                    chatContext = chatContext,
+                    chatSubContext = chatSubContext,
+                    chatSessionConfig = chatSessionConfig
                 )
             )
         } else {
@@ -177,7 +211,10 @@ class ChatViewModel(
                             messageFiles = null,
                             messageText = combinedMessage,
                             htmlString = null,
-                            role = MessageRole.AI
+                            role = MessageRole.AI,
+                            chatContext = chatContext,
+                            chatSubContext = chatSubContext,
+                            chatSessionConfig = chatSessionConfig
                         )
                     )
                 }

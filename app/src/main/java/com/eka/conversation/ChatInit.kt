@@ -22,4 +22,10 @@ object ChatInit {
         }
         return configuration!!
     }
+
+    fun changeConfiguration(
+        chatInitConfiguration: ChatInitConfiguration,
+    ) {
+        configuration = chatInitConfiguration
+    }
 }

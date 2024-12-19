@@ -2,19 +2,28 @@ package com.eka.conversation.ui.presentation.components
 
 import android.content.Context
 import android.widget.Toast
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
@@ -42,6 +51,7 @@ import com.eka.conversation.ui.presentation.models.BottomSectionConfiguration
 import com.eka.conversation.ui.presentation.viewmodels.ChatViewModel
 import com.eka.conversation.ui.theme.Gray200
 
+@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun ChatScreenBottomSection(
     modifier: Modifier = Modifier,
@@ -55,6 +65,7 @@ fun ChatScreenBottomSection(
     var textInputState by remember {
         mutableStateOf("")
     }
+    val isKeyboardOpen = WindowInsets.isImeVisible
     var isRecording by remember { mutableStateOf(false) }
     var recordingTime by remember { mutableStateOf(0) }
 
@@ -79,8 +90,7 @@ fun ChatScreenBottomSection(
         Row(
             modifier = modifier
                 .fillMaxWidth()
-                .imePadding()
-                .padding(horizontal = 8.dp),
+                .imePadding(),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             bottomSectionConfiguration.leadingIcon?.let {
@@ -89,9 +99,9 @@ fun ChatScreenBottomSection(
                 }
             }
             bottomSectionConfiguration.chatInputAreaConfiguration.let { chatInputAreaConfig ->
-                TextField(
+                OutlinedTextField(
                     modifier = chatInputAreaConfig.modifier
-                        .padding(4.dp)
+                        .padding(0.dp)
                         .weight(1f),
                     value = textInputState,
                     onValueChange = { newValue ->
@@ -100,15 +110,12 @@ fun ChatScreenBottomSection(
                     },
                     enabled = !isRecording,
                     shape = RoundedCornerShape(50),
-                    colors = TextFieldDefaults.colors(
-                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
-                        focusedContainerColor = Gray200,
-                        unfocusedContainerColor = Gray200,
-                        disabledContainerColor = Gray200,
-                        unfocusedIndicatorColor = Color.Transparent,
-                        focusedIndicatorColor = Color.Transparent,
-                        disabledIndicatorColor = Color.Transparent,
+                    colors = TextFieldDefaults.outlinedTextFieldColors(
+                        focusedTextColor = Color(0xFF1A1A1A),
+                        unfocusedTextColor = Color(0xFF1A1A1A),
+                        focusedBorderColor = Color(0xFF7A9FFF),
+                        unfocusedBorderColor = Color(0xFFD1D1D1),
+                        containerColor = Color.White,
                     ),
                     keyboardOptions = KeyboardOptions(
                         capitalization = KeyboardCapitalization.Sentences
@@ -118,10 +125,54 @@ fun ChatScreenBottomSection(
                     },
                     leadingIcon = chatInputAreaConfig.leadingIcon,
                     trailingIcon = {
-                        Box(
-                            modifier = Modifier
-                                .clickable {
-                                    if (bottomSectionConfiguration.isSubmitIconInsideChatInputArea) {
+                        if (chatInitConfiguration.audioFeatureConfiguration.isEnabled) {
+                            if (!textInputState.isNullOrEmpty()) {
+                                Box(
+                                    modifier = Modifier
+                                        .clickable {
+                                            if (Utils.isNetworkAvailable(context = context)) {
+                                                onQuerySubmit(context, bottomSectionConfiguration)
+                                                textInputState = ""
+                                            } else {
+                                                Toast.makeText(
+                                                    context,
+                                                    "No Internet!",
+                                                    Toast.LENGTH_SHORT
+                                                ).show()
+                                            }
+                                        }
+                                ) {
+                                    chatInputAreaConfig.trailingIcon?.invoke()
+                                }
+                            } else {
+                                IconButton(onClick = {
+                                    if (PermissionUtils.hasRecordAudioPermission(context) && Utils.isNetworkAvailable(
+                                            context
+                                        )
+                                    ) {
+                                        keyboardController?.hide()
+                                        isRecording = !isRecording
+                                    } else if (!Utils.isNetworkAvailable(context)) {
+                                        showErrorToast(context, "Internet not available.")
+                                    } else {
+                                        showErrorToast(
+                                            context,
+                                            "Microphone permission not granted."
+                                        )
+                                    }
+                                }) {
+                                    Icon(
+                                        painter = painterResource(
+                                            id = R.drawable.ic_chat_sdk_mic
+                                        ),
+                                        contentDescription = "Voice"
+                                    )
+                                }
+                            }
+                        } else {
+                            Box(
+                                modifier = Modifier
+                                    .clickable {
                                         if (Utils.isNetworkAvailable(context = context)) {
                                             onQuerySubmit(context, bottomSectionConfiguration)
                                             textInputState = ""
@@ -133,36 +184,14 @@ fun ChatScreenBottomSection(
                                             ).show()
                                         }
                                     }
-                                }
-                        ) {
-                            chatInputAreaConfig.trailingIcon?.invoke()
+                            ) {
+                                chatInputAreaConfig.trailingIcon?.invoke()
+                            }
                         }
                     },
                     singleLine = false,
-                    maxLines = 3
+                    maxLines = 3,
                 )
-            }
-            if (chatInitConfiguration.audioFeatureConfiguration.isEnabled) {
-                IconButton(onClick = {
-                    if (PermissionUtils.hasRecordAudioPermission(context) && Utils.isNetworkAvailable(
-                            context
-                        )
-                    ) {
-                        keyboardController?.hide()
-                        isRecording = !isRecording
-                    } else if (!Utils.isNetworkAvailable(context)) {
-                        showErrorToast(context, "Internet not available.")
-                    } else {
-                        showErrorToast(context, "Microphone permission not granted.")
-                    }
-                }) {
-                    Icon(
-                        painter = if (isRecording) painterResource(id = R.drawable.baseline_mic_off_24) else painterResource(
-                            id = R.drawable.ic_chat_sdk_mic
-                        ),
-                        contentDescription = "Voice"
-                    )
-                }
             }
         }
         if (isRecording) {
