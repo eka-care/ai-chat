@@ -20,8 +20,10 @@ data class TopBarConfiguration(
     val onLeadingIconClick: () -> Unit = {},
     val trailingIcon: @Composable (() -> Unit)? = null,
     val onTrailingIconClick: () -> Unit = {},
-    val title: @Composable () -> Unit,
-    val subTitle: @Composable (() -> Unit)? = null
+    val title: @Composable (String) -> Unit,
+    val subTitle: @Composable ((String) -> Unit)? = null,
+    val titleName: String,
+    val subTitleName: String
 ) {
     companion object {
         fun defaults(
@@ -30,8 +32,10 @@ data class TopBarConfiguration(
             onLeadingIconClick: () -> Unit = {},
             trailingIcon: @Composable (() -> Unit)? = null,
             onTrailingIconClick: () -> Unit = {},
-            title: @Composable (() -> Unit)? = null,
-            subTitle: @Composable (() -> Unit)? = null
+            title: @Composable ((String) -> Unit)? = null,
+            subTitle: @Composable ((String) -> Unit)? = null,
+            titleName: String,
+            subTitleName: String,
         ) : TopBarConfiguration {
             return TopBarConfiguration(
                 modifier = modifier,
@@ -65,6 +69,8 @@ data class TopBarConfiguration(
                         style = styleBodyFootnote
                     )
                 },
+                titleName = titleName,
+                subTitleName = subTitleName
             )
         }
     }

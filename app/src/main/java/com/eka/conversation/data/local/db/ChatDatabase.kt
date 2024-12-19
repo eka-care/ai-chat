@@ -19,7 +19,8 @@ import com.eka.conversation.data.local.db.entities.MessageFile
         MessageFile::class,
         MessageFTSEntity::class
     ],
-    version = 1
+    version = 2,
+    exportSchema = false
 )
 @TypeConverters(Converters::class)
 abstract class ChatDatabase : RoomDatabase() {
@@ -36,7 +37,8 @@ abstract class ChatDatabase : RoomDatabase() {
                     context.applicationContext,
                     ChatDatabase::class.java,
                     Constants.CHAT_DB_NAME
-                ).build()
+                ).fallbackToDestructiveMigration()
+                    .build()
                 INSTANCE = instance
                 instance
             })

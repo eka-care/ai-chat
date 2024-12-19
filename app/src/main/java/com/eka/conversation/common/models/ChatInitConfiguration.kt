@@ -8,7 +8,7 @@ import com.eka.conversation.ui.presentation.models.TopBarConfiguration
 data class ChatInitConfiguration(
     val chatGeneralConfiguration: ChatGeneralConfiguration,
     val audioFeatureConfiguration: AudioFeatureConfiguration = AudioFeatureConfiguration(),
-    val networkConfiguration: NetworkConfiguration,
+    var networkConfiguration: NetworkConfiguration,
     val topBarConfiguration: TopBarConfiguration? = null,
     val contentSectionConfiguration: ContentSectionConfiguration? = null,
     val bottomSectionConfiguration: BottomSectionConfiguration? = null,

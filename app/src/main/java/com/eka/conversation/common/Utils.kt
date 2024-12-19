@@ -36,7 +36,9 @@ object Utils {
             role = messageEntity.role,
             text = messageEntity.messageText,
             messageFiles = null,
-            htmlString = messageEntity.htmlString
+            htmlString = messageEntity.htmlString,
+            chatContext = messageEntity.chatContext,
+            createdAt = messageEntity.createdAt
         )
     }
 

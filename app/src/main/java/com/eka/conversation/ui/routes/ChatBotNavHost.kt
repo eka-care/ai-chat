@@ -14,6 +14,7 @@ import com.eka.conversation.ui.presentation.models.ContentSectionConfiguration
 import com.eka.conversation.ui.presentation.models.ThreadScreenConfiguration
 import com.eka.conversation.ui.presentation.models.TopBarConfiguration
 import com.eka.conversation.ui.presentation.screens.ChatScreen
+import com.eka.conversation.ui.presentation.screens.SearchScreen
 import com.eka.conversation.ui.presentation.screens.ThreadScreen
 import com.eka.conversation.ui.presentation.viewmodels.ChatViewModel
 
@@ -53,13 +54,15 @@ fun ChatBotNavHost(
                     },
                     onTrailingIconClick = {
                         navController.navigate(Screen.Threads.route)
-                    }
+                    },
+                    titleName = "General Chat",
+                    subTitleName = "Ask Anything!"
                 ),
                 bottomSectionConfiguration = chatInitConfiguration.bottomSectionConfiguration
                     ?: BottomSectionConfiguration.defaults(),
                 contentSectionConfiguration = chatInitConfiguration.contentSectionConfiguration
                     ?: ContentSectionConfiguration.defaults(),
-                sessionId = sessionId // Pass the session ID here
+                sessionId = sessionId
             )
         }
 
@@ -69,8 +72,28 @@ fun ChatBotNavHost(
                 goBackToChatScreen = {
                     onBackPressedDispatcher.onBackPressed()
                 },
+                onSearchClick = {
+                    navController.navigate(Screen.Search.route)
+                },
                 goToChatScreen = { sessionId ->
                     navController.navigate(Screen.Chat.createRoute(sessionId))
+                },
+                threadScreenConfiguration = chatInitConfiguration.threadScreenConfiguration
+                    ?: ThreadScreenConfiguration.defaults(),
+                viewModel = chatViewModel
+            )
+        }
+
+        // Search Screen
+        composable(Screen.Search.route) {
+            SearchScreen(
+                onBackPressed = {
+                    onBackPressedDispatcher.onBackPressed()
+                },
+                onSearchItemClick = { sessionId ->
+                    navController.navigate(Screen.Chat.createRoute(sessionId)) {
+                        popUpTo(Screen.Search.route) { inclusive = true }
+                    }
                 },
                 threadScreenConfiguration = chatInitConfiguration.threadScreenConfiguration
                     ?: ThreadScreenConfiguration.defaults(),

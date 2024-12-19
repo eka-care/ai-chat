@@ -16,7 +16,8 @@ data class ContentSectionConfiguration(
     val receiveMessageContainer : @Composable (MessageContent) -> Unit = {},
     val errorMessageContainer : @Composable (MessageContent) -> Unit = {},
     val loadingMessageContainer : @Composable () -> Unit = {},
-    val backgroundImage : @Composable () -> Unit = {},
+    val background: @Composable () -> Unit = {},
+    val newChatBackground: @Composable () -> Unit = {},
     val reverseMessageSides : Boolean = false
 ) {
     companion object {
@@ -26,13 +27,15 @@ data class ContentSectionConfiguration(
             receiveMessageContainer : @Composable ((MessageContent) -> Unit)? = null,
             errorMessageContainer : @Composable ((MessageContent) -> Unit)? = null,
             loadingMessageContainer : @Composable (() -> Unit)? = null,
-            backgroundImage : @Composable () -> Unit = {},
+            background: @Composable () -> Unit = {},
+            newChatBackground: @Composable () -> Unit = {},
             reverseMessageSides : Boolean = false
         ) : ContentSectionConfiguration {
 
             return ContentSectionConfiguration(
                 modifier = modifier,
-                backgroundImage = backgroundImage,
+                background = background,
+                newChatBackground = newChatBackground,
                 reverseMessageSides = reverseMessageSides,
                 sendMessageContainer = sendMessageContainer ?: { messageContent ->
                     SendMessageContainer(messageContent)

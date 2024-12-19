@@ -11,4 +11,5 @@ sealed class Screen(val route: String) {
         }
     }
     object Threads : Screen("threads")
+    object Search : Screen("search")
 }
