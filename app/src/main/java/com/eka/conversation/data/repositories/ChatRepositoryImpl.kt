@@ -116,6 +116,18 @@ class ChatRepositoryImpl(
         TODO("Not yet implemented")
     }
 
+    override suspend fun getSessionIdBySessionIdentity(sessionIdentity: String): Response<String?> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val response = chatDatabase.messageDao()
+                    .getSessionIdBySessionIdentity(sessionIdentity = sessionIdentity)
+                Response.Success(data = response)
+            } catch (e: Exception) {
+                Response.Error(message = e.message.toString())
+            }
+        }
+    }
+
     override suspend fun queryPost(queryPostRequest: QueryPostRequest): Flow<QueryResponseEvent> =
         flow {
         try {

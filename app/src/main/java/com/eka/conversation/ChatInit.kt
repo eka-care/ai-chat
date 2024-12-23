@@ -4,9 +4,11 @@ import android.content.Context
 import android.content.Intent
 import com.eka.conversation.common.models.ChatInitConfiguration
 import com.eka.conversation.ui.presentation.activities.ConversationActivity
+import com.eka.conversation.ui.presentation.viewmodels.ChatViewModel
 
 object ChatInit {
     private var configuration : ChatInitConfiguration? = null
+    private var viewModel: ChatViewModel? = null
 
     fun initialize(
         chatInitConfiguration : ChatInitConfiguration,
@@ -21,6 +23,14 @@ object ChatInit {
             throw IllegalStateException("Chat Init configuration not initialized")
         }
         return configuration!!
+    }
+
+    fun setChatViewModel(chatViewModel: ChatViewModel) {
+        viewModel = chatViewModel
+    }
+
+    fun getChatViewModel(): ChatViewModel? {
+        return viewModel
     }
 
     fun changeConfiguration(

@@ -22,6 +22,7 @@ interface ChatRepository {
     suspend fun insertFiles(files : List<MessageFile>)
     suspend fun deleteFiles(files : List<MessageFile>) : Response<Boolean>
     suspend fun getFileById(fileId : Int) : Response<MessageFile>
+    suspend fun getSessionIdBySessionIdentity(sessionIdentity: String): Response<String?>
 
     //remote
     suspend fun queryPost(queryPostRequest: QueryPostRequest): Flow<QueryResponseEvent>

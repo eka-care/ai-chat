@@ -16,6 +16,8 @@ class ConversationActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        ChatInit.setChatViewModel(chatViewModel)
+
         setContent {
             ConversationScreen(
                 viewModel = chatViewModel,

@@ -4,7 +4,6 @@ import androidx.annotation.Keep
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Fts4
-import androidx.room.PrimaryKey
 import com.eka.conversation.common.Constants
 import com.eka.conversation.data.local.db.entities.models.MessageRole
 
@@ -14,6 +13,7 @@ import com.eka.conversation.data.local.db.entities.models.MessageRole
 data class MessageEntity(
     @ColumnInfo(name = "msg_id") val msgId : Int,
     @ColumnInfo(name = "session_id") val sessionId : String,
+    @ColumnInfo(name = "session_identity") val sessionIdentity: String? = null,
     @ColumnInfo(name = "role") val role : MessageRole,
     @ColumnInfo(name = "message_files") val messageFiles : List<Int>? = null,
     @ColumnInfo(name = "message_text") val messageText : String? = null,

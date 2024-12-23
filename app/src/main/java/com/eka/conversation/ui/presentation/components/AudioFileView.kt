@@ -40,15 +40,13 @@ import kotlinx.coroutines.delay
 fun AudioFileView(
     audioFilePath: String,
     modifier: Modifier = Modifier,
-    onRemove: () -> Unit // Callback to remove the file
+    onRemove: () -> Unit
 ) {
-    // State to manage playback
     var isPlaying by remember { mutableStateOf(false) }
     var currentPosition by remember { mutableLongStateOf(0L) }
     var duration by remember { mutableLongStateOf(0L) }
     val mediaPlayer = remember { MediaPlayer() }
 
-    // Prepare media player when composable is loaded
     DisposableEffect(Unit) {
         try {
             mediaPlayer.setDataSource(audioFilePath)
@@ -68,7 +66,6 @@ fun AudioFileView(
         }
     }
 
-    // UI Components
     Row(
         modifier = modifier
             .padding(8.dp)

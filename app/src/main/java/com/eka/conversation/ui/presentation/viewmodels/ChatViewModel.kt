@@ -1,8 +1,8 @@
 package com.eka.conversation.ui.presentation.viewmodels
 
 import android.app.Application
-import android.content.Context
 import android.util.Log
+import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.eka.conversation.ChatInit
@@ -65,6 +65,35 @@ class ChatViewModel(
     var _currentTranscribeData = MutableStateFlow<Response<String>>(Response.Loading())
     val currentTranscribeData = _currentTranscribeData.asStateFlow()
 
+    var _sessionIdBySessionIdentity = MutableStateFlow<String?>(null)
+    val sessionIdBySessionIdentity = _sessionIdBySessionIdentity.asStateFlow()
+
+    var textInputState = mutableStateOf("")
+
+    fun updateTextInputState(newValue: String) {
+        textInputState.value = newValue
+    }
+
+    fun getSessionIdBySessionIdentity(sessionIdentity: String) {
+        viewModelScope.launch {
+            val response =
+                chatRepository.getSessionIdBySessionIdentity(sessionIdentity = sessionIdentity)
+            when (response) {
+                is Response.Loading -> {
+                }
+
+                is Response.Success -> {
+                    _sessionIdBySessionIdentity.value = response.data
+                }
+
+                is Response.Error -> {
+                }
+
+                else -> {}
+            }
+        }
+    }
+
     fun searchMessages(query : String) : Flow<List<MessageEntity>> {
         val response = chatRepository.getSearchResult(query)
         return response
@@ -97,10 +126,8 @@ class ChatViewModel(
         }
     }
 
-    fun onSortClick() {
-        if (!_lastMessagesSession.value.isNullOrEmpty()) {
-            _lastMessagesSession.value = _lastMessagesSession.value?.reversed()
-        }
+    fun onSortClick(messages: List<MessageEntity>) {
+        _lastMessagesSession.value = messages
     }
 
     fun queryPost(
@@ -110,6 +137,7 @@ class ChatViewModel(
         chatContext: String,
         chatSubContext: String,
         chatSessionConfig: String,
+        sessionIdentity: String?
     ) {
         viewModelScope.launch {
             _enterButtonEnableState.value = false
@@ -120,7 +148,8 @@ class ChatViewModel(
                 sessionId,
                 chatContext,
                 chatSubContext,
-                chatSessionConfig
+                chatSessionConfig,
+                sessionIdentity
             )
             chatRepository.queryPost(queryPostRequest = queryPostRequest).collect {
                 Log.d("ChatViewModel","Event Collected! ${it}")
@@ -129,7 +158,8 @@ class ChatViewModel(
                     sessionId = sessionId,
                     chatContext = chatContext,
                     chatSubContext = chatSubContext,
-                    chatSessionConfig = chatSessionConfig
+                    chatSessionConfig = chatSessionConfig,
+                    sessionIdentity = sessionIdentity
                 )
             }
         }
@@ -141,7 +171,8 @@ class ChatViewModel(
         sessionId: String,
         chatContext: String,
         chatSubContext: String,
-        chatSessionConfig: String
+        chatSessionConfig: String,
+        sessionIdentity: String?,
     ) {
         var lastMsgId = newMsgId
         queryPostRequest.body.messages?.let {
@@ -159,7 +190,8 @@ class ChatViewModel(
                                 role = MessageRole.USER,
                                 chatContext = chatContext,
                                 chatSubContext = chatSubContext,
-                                chatSessionConfig = chatSessionConfig
+                                chatSessionConfig = chatSessionConfig,
+                                sessionIdentity = sessionIdentity
                             )
                         )
                         lastMsgId += 1
@@ -174,7 +206,8 @@ class ChatViewModel(
         sessionId: String,
         chatContext: String,
         chatSubContext: String,
-        chatSessionConfig: String
+        chatSessionConfig: String,
+        sessionIdentity: String?,
     ) {
         if (eventData.isLastEvent) {
             _enterButtonEnableState.value = true
@@ -196,7 +229,8 @@ class ChatViewModel(
                     role = MessageRole.AI,
                     chatContext = chatContext,
                     chatSubContext = chatSubContext,
-                    chatSessionConfig = chatSessionConfig
+                    chatSessionConfig = chatSessionConfig,
+                    sessionIdentity = sessionIdentity
                 )
             )
         } else {
@@ -214,7 +248,8 @@ class ChatViewModel(
                             role = MessageRole.AI,
                             chatContext = chatContext,
                             chatSubContext = chatSubContext,
-                            chatSessionConfig = chatSessionConfig
+                            chatSessionConfig = chatSessionConfig,
+                            sessionIdentity = sessionIdentity
                         )
                     )
                 }

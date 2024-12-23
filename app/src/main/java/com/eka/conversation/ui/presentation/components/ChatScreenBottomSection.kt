@@ -2,7 +2,6 @@ package com.eka.conversation.ui.presentation.components
 
 import android.content.Context
 import android.widget.Toast
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -11,22 +10,19 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -35,6 +31,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -49,7 +47,6 @@ import com.eka.conversation.common.models.ChatInitConfiguration
 import com.eka.conversation.features.audio.DefaultAudioProcessor
 import com.eka.conversation.ui.presentation.models.BottomSectionConfiguration
 import com.eka.conversation.ui.presentation.viewmodels.ChatViewModel
-import com.eka.conversation.ui.theme.Gray200
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -60,11 +57,10 @@ fun ChatScreenBottomSection(
     viewModel: ChatViewModel,
     bottomSectionConfiguration: BottomSectionConfiguration = BottomSectionConfiguration.defaults()
 ) {
+    val listState = rememberLazyListState()
     val context = LocalContext.current.applicationContext
     val currentTranscribeData by viewModel.currentTranscribeData.collectAsState(Response.Loading())
-    var textInputState by remember {
-        mutableStateOf("")
-    }
+    var textInputState by viewModel.textInputState
     val isKeyboardOpen = WindowInsets.isImeVisible
     var isRecording by remember { mutableStateOf(false) }
     var recordingTime by remember { mutableStateOf(0) }
@@ -74,19 +70,19 @@ fun ChatScreenBottomSection(
     var audioFilePath by remember {
         mutableStateOf("")
     }
+
+    val focusRequester = remember { FocusRequester() }
     val keyboardController = LocalSoftwareKeyboardController.current
+
+    LaunchedEffect(Unit) {
+        focusRequester.requestFocus()
+        keyboardController?.show()
+    }
 
     Column(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        if (audioFilePath.isNotEmpty()) {
-            AudioFileView(
-                audioFilePath = audioFilePath
-            ) {
-                audioFilePath = ""
-            }
-        }
         Row(
             modifier = modifier
                 .fillMaxWidth()
@@ -102,10 +98,11 @@ fun ChatScreenBottomSection(
                 OutlinedTextField(
                     modifier = chatInputAreaConfig.modifier
                         .padding(0.dp)
+                        .focusRequester(focusRequester)
                         .weight(1f),
                     value = textInputState,
                     onValueChange = { newValue ->
-                        textInputState = newValue
+                        viewModel.updateTextInputState(newValue)
                         onInputChange(newValue)
                     },
                     enabled = !isRecording,
@@ -132,7 +129,7 @@ fun ChatScreenBottomSection(
                                         .clickable {
                                             if (Utils.isNetworkAvailable(context = context)) {
                                                 onQuerySubmit(context, bottomSectionConfiguration)
-                                                textInputState = ""
+                                                viewModel.updateTextInputState("")
                                             } else {
                                                 Toast.makeText(
                                                     context,
@@ -175,7 +172,7 @@ fun ChatScreenBottomSection(
                                     .clickable {
                                         if (Utils.isNetworkAvailable(context = context)) {
                                             onQuerySubmit(context, bottomSectionConfiguration)
-                                            textInputState = ""
+                                            viewModel.updateTextInputState("")
                                         } else {
                                             Toast.makeText(
                                                 context,
@@ -206,7 +203,7 @@ fun ChatScreenBottomSection(
 
                     is Response.Success -> {
                         val transcribedText = response.data.toString()
-                        textInputState = transcribedText
+                        viewModel.updateTextInputState(transcribedText)
                         onInputChange(transcribedText)
                         viewModel.clearRecording()
                     }

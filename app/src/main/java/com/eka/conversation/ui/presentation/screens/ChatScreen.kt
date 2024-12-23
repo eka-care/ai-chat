@@ -40,11 +40,14 @@ fun ChatScreen(
     bottomSectionConfiguration: BottomSectionConfiguration = BottomSectionConfiguration.defaults(),
     contentSectionConfiguration: ContentSectionConfiguration = ContentSectionConfiguration.defaults(),
     viewModel: ChatViewModel,
-    sessionId: String
+    sessionId: String,
+    isFromThreadScreen: Boolean
 ) {
     val context = LocalContext.current.applicationContext
     val lastMessagesForEachSession by viewModel.lastMessagesSession.collectAsState(initial = null)
-    var currentSessionId = sessionId
+    var currentSessionId by remember {
+        mutableStateOf(sessionId)
+    }
     var messages by remember { mutableStateOf<List<MessageEntity>>(emptyList()) }
     val enterButtonEnableState by viewModel.enterButtonEnableState.collectAsState()
     var textInputState by remember {
@@ -54,6 +57,22 @@ fun ChatScreen(
     var chatContext by remember { mutableStateOf(chatInitConfiguration.chatGeneralConfiguration.chatContext) }
     var chatSubContext by remember {
         mutableStateOf(chatInitConfiguration.chatGeneralConfiguration.chatSubContext)
+    }
+    var sessionIdentity = chatInitConfiguration.chatGeneralConfiguration.sessionIdentity
+
+    if (chatInitConfiguration.chatGeneralConfiguration.shouldUseExistingSession && !isFromThreadScreen) {
+        LaunchedEffect(Unit) {
+            if (!sessionIdentity.isNullOrEmpty()) {
+                viewModel.getSessionIdBySessionIdentity(sessionIdentity = sessionIdentity)
+            }
+        }
+        LaunchedEffect(Unit) {
+            viewModel.sessionIdBySessionIdentity.collect { oldSessionId ->
+                if (oldSessionId != null) {
+                    currentSessionId = oldSessionId
+                }
+            }
+        }
     }
 
     LaunchedEffect(currentSessionId) {
@@ -114,7 +133,8 @@ fun ChatScreen(
                                     sessionId = currentSessionId,
                                     chatContext = chatContext,
                                     chatSubContext = chatSubContext,
-                                    chatSessionConfig = chatInitConfiguration.chatGeneralConfiguration.chatSessionConfig
+                                    chatSessionConfig = chatInitConfiguration.chatGeneralConfiguration.chatSessionConfig,
+                                    sessionIdentity = chatInitConfiguration.chatGeneralConfiguration.sessionIdentity
                                 )
                             }
                         } else {
@@ -150,7 +170,8 @@ fun askNewQuery(
     sessionId: String,
     chatContext: String,
     chatSubContext: String,
-    chatSessionConfig: String
+    chatSessionConfig: String,
+    sessionIdentity: String?,
 ) {
     params.put("session_id", sessionId)
     viewModel.queryPost(
@@ -169,6 +190,7 @@ fun askNewQuery(
         sessionId = sessionId,
         chatContext = chatContext,
         chatSubContext = chatSubContext,
-        chatSessionConfig = chatSessionConfig
+        chatSessionConfig = chatSessionConfig,
+        sessionIdentity = sessionIdentity
     )
 }
