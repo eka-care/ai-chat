@@ -7,7 +7,6 @@ import androidx.room.Query
 import androidx.room.Update
 import com.eka.conversation.common.Constants
 import com.eka.conversation.data.local.db.entities.MessageEntity
-import com.eka.conversation.data.local.db.entities.models.MessageRole
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -30,6 +29,9 @@ interface MessageDao {
 
     @Query("SELECT session_id FROM ${Constants.MESSAGES_TABLE_NAME} ORDER BY created_at DESC LIMIT 1")
     fun getLastSessionId() : Flow<String>
+
+    @Query("SELECT session_id FROM ${Constants.MESSAGES_TABLE_NAME} WHERE session_identity = :sessionIdentity LIMIT 1")
+    suspend fun getSessionIdBySessionIdentity(sessionIdentity: String): String?
 
     @Query("""
         SELECT * FROM ${Constants.MESSAGES_TABLE_NAME} WHERE (msg_id,session_id) IN (

@@ -3,6 +3,8 @@ package com.eka.testapp
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -11,9 +13,9 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.rounded.Send
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.eka.conversation.ChatInit
 import com.eka.conversation.common.models.AudioFeatureConfiguration
@@ -24,8 +26,6 @@ import com.eka.conversation.common.models.NetworkConfiguration
 import com.eka.conversation.ui.presentation.models.BottomSectionConfiguration
 import com.eka.conversation.ui.presentation.models.ChatInputAreaConfiguration
 import com.eka.conversation.ui.presentation.models.ThreadScreenConfiguration
-import com.eka.conversation.ui.presentation.models.ThreadsTopBarConfiguration
-import com.eka.conversation.ui.presentation.models.TopBarConfiguration
 import com.eka.conversation.ui.theme.styleTitlesSubheadLine
 
 class TestAppActivity : ComponentActivity() {
@@ -46,7 +46,41 @@ class TestAppActivity : ComponentActivity() {
                             aiBotEndpoint = "",
                             headers = hashMapOf(),
                         )
-                    }
+                    },
+                    sortBottomSheetLayout = {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(Color.White),
+                            verticalArrangement = Arrangement.Top,
+                            horizontalAlignment = Alignment.Start
+                        ) {
+                            Text(
+                                text = "Sort By",
+                                style = styleTitlesSubheadLine,
+                                color = Color.Black,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                maxLines = 1
+                            )
+                            Text(
+                                text = "Date",
+                                style = styleTitlesSubheadLine,
+                                color = Color.Black,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                maxLines = 1
+                            )
+                        }
+                    },
+                    onSortItemClick = { it ->
+                        it
+                    },
+                    sessionIdentity = null,
+                    shouldUseExistingSession = true,
+                    isSuggestionsEnabled = true,
                 ),
                 audioFeatureConfiguration = AudioFeatureConfiguration(
                     isEnabled = true,
@@ -84,9 +118,12 @@ class TestAppActivity : ComponentActivity() {
                                 contentDescription = ""
                             )
                         },
+                        onChangeTextField = { onSuggestionClick ->
+
+                        }
                     ),
                     trailingIcon = null,
-                    isSubmitIconInsideChatInputArea = true
+                    isSubmitIconInsideChatInputArea = true,
                 ),
                 threadScreenConfiguration = ThreadScreenConfiguration.defaults()
             ),

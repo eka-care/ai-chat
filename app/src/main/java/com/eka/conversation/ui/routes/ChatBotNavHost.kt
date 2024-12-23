@@ -35,6 +35,7 @@ fun ChatBotNavHost(
             })
         ) { backStackEntry ->
             var sessionId = backStackEntry.arguments?.getString("sessionId")
+            var isFromThreadScreen = !sessionId.isNullOrEmpty()
             if (sessionId.isNullOrEmpty()) {
                 sessionId = Utils.getNewSessionId()
             }
@@ -62,7 +63,8 @@ fun ChatBotNavHost(
                     ?: BottomSectionConfiguration.defaults(),
                 contentSectionConfiguration = chatInitConfiguration.contentSectionConfiguration
                     ?: ContentSectionConfiguration.defaults(),
-                sessionId = sessionId
+                sessionId = sessionId,
+                isFromThreadScreen = isFromThreadScreen
             )
         }
 

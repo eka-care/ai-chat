@@ -17,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import com.eka.conversation.ChatInit
 import com.eka.conversation.R
 import com.eka.conversation.ui.presentation.models.ThreadsTopBarConfiguration
 
@@ -24,10 +25,12 @@ import com.eka.conversation.ui.presentation.models.ThreadsTopBarConfiguration
 fun ThreadScreenTopBar(
     modifier: Modifier = Modifier,
     threadsTopBarConfiguration: ThreadsTopBarConfiguration = ThreadsTopBarConfiguration.defaults(),
+
     onBackClick: () -> Unit,
     onSearchClick: () -> Unit,
     onSortClick: () -> Unit
 ) {
+    val chatInitConfig = ChatInit.getChatInitConfiguration()
     Column {
         Row(
             modifier = modifier
@@ -54,21 +57,23 @@ fun ThreadScreenTopBar(
                     threadsTopBarConfiguration.subTitle.invoke()
                 }
             }
-            IconButton(
-                onClick = onSearchClick
-            ) {
-                Icon(
-                    painter = painterResource(id = R.drawable.ic_chat_search),
-                    tint = Color.Black,
-                    contentDescription = "Back"
-                )
+            if (chatInitConfig.chatGeneralConfiguration.isSearchEnabled) {
+                IconButton(onClick = onSearchClick) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_chat_search),
+                        tint = Color.Black,
+                        contentDescription = "Back"
+                    )
+                }
             }
-            IconButton(onClick = onSortClick) {
-                Icon(
-                    painter = painterResource(id = R.drawable.ic_chat_sort),
-                    tint = Color.Black,
-                    contentDescription = "Back"
-                )
+            if (chatInitConfig.chatGeneralConfiguration.isSortEnabled) {
+                IconButton(onClick = onSortClick) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_chat_sort),
+                        tint = Color.Black,
+                        contentDescription = "Back"
+                    )
+                }
             }
         }
         Spacer(

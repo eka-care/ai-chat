@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -34,6 +33,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.eka.conversation.ChatInit
 import com.eka.conversation.common.Response
 import com.eka.conversation.ui.presentation.viewmodels.ChatViewModel
 import kotlinx.coroutines.delay
@@ -45,12 +45,13 @@ fun VoiceFeatureComponent(
     viewModel: ChatViewModel,
     onTranscriptionResult: (Response<String>) -> Unit,
 ) {
-    // timer updates every 10 millis
     var recordingTime by remember { mutableStateOf(0L) }
     val currentTranscribedData by viewModel.currentTranscribeData.collectAsState(Response.Loading())
     var isRecording by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
+
+    val chatInitConfig = ChatInit.getChatInitConfiguration()
 
     LaunchedEffect(Unit) {
         viewModel.clearRecording()
@@ -91,21 +92,34 @@ fun VoiceFeatureComponent(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .fillMaxHeight(0.3f)
     ) {
         if (isRecording) {
-            RecordingScreen(
-                recordingTime = recordingTime,
-                onStopRecording = {
+            if (chatInitConfig.audioFeatureConfiguration.recordingComponent == null) {
+                RecordingScreen(
+                    recordingTime = recordingTime,
+                    onStopRecording = {
+                        isRecording = false
+                        isLoading = true
+                        coroutineScope.launch {
+                            viewModel.stopAudioRecording()
+                        }
+                    }
+                )
+            } else {
+                chatInitConfig.audioFeatureConfiguration.recordingComponent.invoke(recordingTime) {
                     isRecording = false
                     isLoading = true
                     coroutineScope.launch {
                         viewModel.stopAudioRecording()
                     }
                 }
-            )
+            }
         } else if (isLoading) {
-            LoadingScreen()
+            if (chatInitConfig.audioFeatureConfiguration.loadingComponent == null) {
+                LoadingScreen()
+            } else {
+                chatInitConfig.audioFeatureConfiguration.loadingComponent.invoke()
+            }
         }
     }
 }
@@ -161,6 +175,8 @@ fun RecordingScreen(
                         .background(Color.Red, CircleShape)
                 )
             }
+
+            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }

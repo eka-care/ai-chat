@@ -12,6 +12,8 @@ data class BottomSectionConfiguration(
     val trailingIcon: @Composable  (() -> Unit)? = null,
     val onTrailingIconClick: () -> Unit = {},
     val isSubmitIconInsideChatInputArea: Boolean = false,
+//    val suggestions : List<Suggestion>?,
+//    val suggestionItemLayout : @Composable ((suggestion: Suggestion, onSuggestionClick : () -> Unit) -> Unit)?,
     val chatInputAreaConfiguration : ChatInputAreaConfiguration = ChatInputAreaConfiguration.defaults()
 ) {
     companion object {
@@ -22,6 +24,8 @@ data class BottomSectionConfiguration(
             trailingIcon: @Composable (() -> Unit)? = null,
             isSubmitIconInsideChatInputArea: Boolean = false,
             onTrailingIconClick: () -> Unit = {},
+//            suggestions : List<Suggestion>? = null,
+//            suggestionItemLayout : @Composable ((suggestion: Suggestion, onSuggestionClick : () -> Unit) -> Unit)? = null,
             chatInputAreaConfiguration: ChatInputAreaConfiguration = ChatInputAreaConfiguration.defaults()
         ) : BottomSectionConfiguration {
             return BottomSectionConfiguration(
@@ -31,7 +35,9 @@ data class BottomSectionConfiguration(
                 onLeadingIconClick = onLeadingIconClick,
                 trailingIcon = trailingIcon,
                 isSubmitIconInsideChatInputArea = isSubmitIconInsideChatInputArea,
-                onTrailingIconClick = onTrailingIconClick
+                onTrailingIconClick = onTrailingIconClick,
+//                suggestionItemLayout = suggestionItemLayout,
+//                suggestions = suggestions
             )
         }
     }
