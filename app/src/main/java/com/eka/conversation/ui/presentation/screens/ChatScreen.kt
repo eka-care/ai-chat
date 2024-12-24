@@ -48,6 +48,7 @@ fun ChatScreen(
     var currentSessionId by remember {
         mutableStateOf(sessionId)
     }
+    val newQuery by viewModel.newQuery
     var messages by remember { mutableStateOf<List<MessageEntity>>(emptyList()) }
     val enterButtonEnableState by viewModel.enterButtonEnableState.collectAsState()
     var textInputState by remember {
@@ -95,6 +96,26 @@ fun ChatScreen(
                 )
                 chatInitConfiguration = ChatInit.getChatInitConfiguration()
             }
+        }
+    }
+
+    LaunchedEffect(newQuery) {
+        if (Utils.isNetworkAvailable(context = context)) {
+            if (newQuery.trim().isNotEmpty()) {
+                askNewQuery(
+                    newMsgId = getNewMsgId(messages),
+                    textInput = newQuery,
+                    viewModel = viewModel,
+                    params = chatInitConfiguration.networkConfiguration.params,
+                    sessionId = currentSessionId,
+                    chatContext = chatContext,
+                    chatSubContext = chatSubContext,
+                    chatSessionConfig = chatInitConfiguration.chatGeneralConfiguration.chatSessionConfig,
+                    sessionIdentity = chatInitConfiguration.chatGeneralConfiguration.sessionIdentity
+                )
+            }
+        } else {
+            Toast.makeText(context, "No Internet!", Toast.LENGTH_SHORT).show()
         }
     }
 

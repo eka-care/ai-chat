@@ -71,6 +71,10 @@ fun ChatScreenBottomSection(
         mutableStateOf("")
     }
 
+    LaunchedEffect(textInputState) {
+        onInputChange(textInputState)
+    }
+
     val focusRequester = remember { FocusRequester() }
     val keyboardController = LocalSoftwareKeyboardController.current
 

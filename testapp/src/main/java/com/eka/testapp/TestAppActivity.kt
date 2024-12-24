@@ -3,8 +3,10 @@ package com.eka.testapp
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -25,6 +27,7 @@ import com.eka.conversation.common.models.ChatInitConfiguration
 import com.eka.conversation.common.models.NetworkConfiguration
 import com.eka.conversation.ui.presentation.models.BottomSectionConfiguration
 import com.eka.conversation.ui.presentation.models.ChatInputAreaConfiguration
+import com.eka.conversation.ui.presentation.models.ContentSectionConfiguration
 import com.eka.conversation.ui.presentation.models.ThreadScreenConfiguration
 import com.eka.conversation.ui.theme.styleTitlesSubheadLine
 
@@ -80,7 +83,6 @@ class TestAppActivity : ComponentActivity() {
                     },
                     sessionIdentity = null,
                     shouldUseExistingSession = true,
-                    isSuggestionsEnabled = true,
                 ),
                 audioFeatureConfiguration = AudioFeatureConfiguration(
                     isEnabled = true,
@@ -118,14 +120,30 @@ class TestAppActivity : ComponentActivity() {
                                 contentDescription = ""
                             )
                         },
-                        onChangeTextField = { onSuggestionClick ->
-
-                        }
                     ),
                     trailingIcon = null,
                     isSubmitIconInsideChatInputArea = true,
                 ),
-                threadScreenConfiguration = ThreadScreenConfiguration.defaults()
+                threadScreenConfiguration = ThreadScreenConfiguration.defaults(),
+                contentSectionConfiguration = ContentSectionConfiguration.defaults(
+                    modifier = Modifier
+                        .fillMaxSize(),
+                    newChatBackground = {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize(),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Text(
+                                modifier = Modifier.clickable {
+                                    ChatInit.getChatViewModel()?.sendNewQuery("Suggestion")
+                                },
+                                text = "Suggestion",
+                            )
+                        }
+                    }
+                )
             ),
             context = this
         )
