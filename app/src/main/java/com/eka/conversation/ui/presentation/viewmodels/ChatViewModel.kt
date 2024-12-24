@@ -70,8 +70,14 @@ class ChatViewModel(
 
     var textInputState = mutableStateOf("")
 
+    var newQuery = mutableStateOf("")
+
     fun updateTextInputState(newValue: String) {
         textInputState.value = newValue
+    }
+
+    fun sendNewQuery(query: String) {
+        newQuery.value = query
     }
 
     fun getSessionIdBySessionIdentity(sessionIdentity: String) {
