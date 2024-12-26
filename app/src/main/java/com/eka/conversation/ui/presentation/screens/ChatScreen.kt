@@ -117,6 +117,7 @@ fun ChatScreen(
         } else {
             Toast.makeText(context, "No Internet!", Toast.LENGTH_SHORT).show()
         }
+        viewModel.sendNewQuery("")
     }
 
     Column(
