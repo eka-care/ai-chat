@@ -8,6 +8,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.rememberNavController
 import com.eka.conversation.ChatInit
+import com.eka.conversation.data.remote.api.RetrofitClient
 import com.eka.conversation.ui.presentation.viewmodels.ChatViewModel
 import com.eka.conversation.ui.routes.ChatBotNavHost
 import com.eka.conversation.ui.routes.Screen
@@ -27,7 +28,14 @@ fun ConversationScreen(
     }
 
     LaunchedEffect(Unit) {
-        viewModel.getLastMessagesForEachSession()
+        RetrofitClient.init(
+            baseUrl = chatInitConfiguration.networkConfiguration.baseUrl
+        )
+        if (chatInitConfiguration.chatGeneralConfiguration.filterApplyOnOwnerId) {
+            viewModel.getLastMessagesForEachSession(ownerId = chatInitConfiguration.chatGeneralConfiguration.ownerId)
+        } else {
+            viewModel.getLastMessagesForEachSession(ownerId = "")
+        }
     }
 
     ChatBotTheme() {

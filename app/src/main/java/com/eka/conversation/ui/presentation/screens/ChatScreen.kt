@@ -111,7 +111,8 @@ fun ChatScreen(
                     chatContext = chatContext,
                     chatSubContext = chatSubContext,
                     chatSessionConfig = chatInitConfiguration.chatGeneralConfiguration.chatSessionConfig,
-                    sessionIdentity = chatInitConfiguration.chatGeneralConfiguration.sessionIdentity
+                    sessionIdentity = chatInitConfiguration.chatGeneralConfiguration.sessionIdentity,
+                    ownerId = chatInitConfiguration.chatGeneralConfiguration.ownerId
                 )
             }
         } else {
@@ -156,7 +157,8 @@ fun ChatScreen(
                                     chatContext = chatContext,
                                     chatSubContext = chatSubContext,
                                     chatSessionConfig = chatInitConfiguration.chatGeneralConfiguration.chatSessionConfig,
-                                    sessionIdentity = chatInitConfiguration.chatGeneralConfiguration.sessionIdentity
+                                    sessionIdentity = chatInitConfiguration.chatGeneralConfiguration.sessionIdentity,
+                                    ownerId = chatInitConfiguration.chatGeneralConfiguration.ownerId
                                 )
                             }
                         } else {
@@ -194,6 +196,7 @@ fun askNewQuery(
     chatSubContext: String,
     chatSessionConfig: String,
     sessionIdentity: String?,
+    ownerId: String
 ) {
     params.put("session_id", sessionId)
     viewModel.queryPost(
@@ -213,6 +216,7 @@ fun askNewQuery(
         chatContext = chatContext,
         chatSubContext = chatSubContext,
         chatSessionConfig = chatSessionConfig,
-        sessionIdentity = sessionIdentity
+        sessionIdentity = sessionIdentity,
+        ownerId = ownerId
     )
 }

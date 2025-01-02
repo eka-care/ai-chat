@@ -100,8 +100,18 @@ class ChatViewModel(
         }
     }
 
-    fun searchMessages(query : String) : Flow<List<MessageEntity>> {
-        val response = chatRepository.getSearchResult(query)
+    fun fillPastChatMessagesWithOwnerId(ownerId: String) {
+        viewModelScope.launch {
+            chatRepository.fillPastMessagesWithOwnerId(ownerId = ownerId)
+        }
+    }
+
+    fun searchMessages(query: String, ownerId: String): Flow<List<MessageEntity>> {
+        val response = if (ownerId.isNullOrEmpty()) {
+            chatRepository.getSearchResult(query = query)
+        } else {
+            chatRepository.getSearchResultWithOwnerId(query = query, ownerId = ownerId)
+        }
         return response
     }
 
@@ -114,9 +124,14 @@ class ChatViewModel(
         }
     }
 
-    fun getLastMessagesForEachSession() {
+    fun getLastMessagesForEachSession(ownerId: String) {
         viewModelScope.launch {
-            val response = chatRepository.getLastMessagesOfEachSessionId()
+            val response = if (ownerId.isNullOrEmpty()) {
+                chatRepository.getLastMessagesOfEachSessionId()
+            } else {
+                chatRepository.getLastMessagesOfEachSessionIdFilterByOwnerId(ownerId = ownerId)
+            }
+
             when(response) {
                 is Response.Loading -> {
                 }
@@ -143,7 +158,8 @@ class ChatViewModel(
         chatContext: String,
         chatSubContext: String,
         chatSessionConfig: String,
-        sessionIdentity: String?
+        sessionIdentity: String?,
+        ownerId: String
     ) {
         viewModelScope.launch {
             _enterButtonEnableState.value = false
@@ -155,7 +171,8 @@ class ChatViewModel(
                 chatContext,
                 chatSubContext,
                 chatSessionConfig,
-                sessionIdentity
+                sessionIdentity,
+                ownerId = ownerId
             )
             chatRepository.queryPost(queryPostRequest = queryPostRequest).collect {
                 Log.d("ChatViewModel","Event Collected! ${it}")
@@ -165,7 +182,8 @@ class ChatViewModel(
                     chatContext = chatContext,
                     chatSubContext = chatSubContext,
                     chatSessionConfig = chatSessionConfig,
-                    sessionIdentity = sessionIdentity
+                    sessionIdentity = sessionIdentity,
+                    ownerId = ownerId
                 )
             }
         }
@@ -179,6 +197,7 @@ class ChatViewModel(
         chatSubContext: String,
         chatSessionConfig: String,
         sessionIdentity: String?,
+        ownerId: String
     ) {
         var lastMsgId = newMsgId
         queryPostRequest.body.messages?.let {
@@ -197,7 +216,8 @@ class ChatViewModel(
                                 chatContext = chatContext,
                                 chatSubContext = chatSubContext,
                                 chatSessionConfig = chatSessionConfig,
-                                sessionIdentity = sessionIdentity
+                                sessionIdentity = sessionIdentity,
+                                ownerId = ownerId
                             )
                         )
                         lastMsgId += 1
@@ -214,6 +234,7 @@ class ChatViewModel(
         chatSubContext: String,
         chatSessionConfig: String,
         sessionIdentity: String?,
+        ownerId: String
     ) {
         if (eventData.isLastEvent) {
             _enterButtonEnableState.value = true
@@ -236,7 +257,8 @@ class ChatViewModel(
                     chatContext = chatContext,
                     chatSubContext = chatSubContext,
                     chatSessionConfig = chatSessionConfig,
-                    sessionIdentity = sessionIdentity
+                    sessionIdentity = sessionIdentity,
+                    ownerId = ownerId
                 )
             )
         } else {
@@ -255,7 +277,8 @@ class ChatViewModel(
                             chatContext = chatContext,
                             chatSubContext = chatSubContext,
                             chatSessionConfig = chatSessionConfig,
-                            sessionIdentity = sessionIdentity
+                            sessionIdentity = sessionIdentity,
+                            ownerId = ownerId
                         )
                     )
                 }

@@ -16,4 +16,6 @@ data class ChatGeneralConfiguration(
     val onSortItemClick: (List<MessageEntity>) -> List<MessageEntity>,
     val sessionIdentity: String?,
     val shouldUseExistingSession: Boolean,
+    val filterApplyOnOwnerId: Boolean,
+    val ownerId: String
 )

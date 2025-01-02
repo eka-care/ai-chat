@@ -40,6 +40,15 @@ interface MessageDao {
     """)
     fun searchMessages(query: String): Flow<List<MessageEntity>>
 
+    @Query(
+        """
+        SELECT * FROM ${Constants.MESSAGES_TABLE_NAME} WHERE (msg_id,session_id) IN (
+            SELECT msg_id,session_id FROM ${Constants.MESSAGES_FTS_TABLE_NAME} WHERE message_text MATCH :query or chat_context MATCH :query
+        ) AND owner_id = :ownerId
+    """
+    )
+    fun searchMessagesWithOwnerId(query: String, ownerId: String): Flow<List<MessageEntity>>
+
     // Get last messages for each session to show in session list
     @Query("""
         SELECT * FROM ${Constants.MESSAGES_TABLE_NAME} AS m1
@@ -54,6 +63,20 @@ interface MessageDao {
     )
     suspend fun getAllLastMessagesOfEachSession() : List<MessageEntity>
 
+    @Query(
+        """
+        SELECT * FROM ${Constants.MESSAGES_TABLE_NAME} AS m1
+        INNER JOIN (
+            SELECT session_id, MAX(created_at) AS max_createdAt 
+            FROM ${Constants.MESSAGES_TABLE_NAME}
+            WHERE role = "USER" AND owner_id = :ownerId
+            GROUP BY session_id 
+        ) AS m2 
+        ON m1.session_id = m2.session_id AND m1.created_at = m2.max_createdAt ORDER BY m1.created_at DESC
+    """
+    )
+    suspend fun getAllLastMessagesOfEachSessionWithFilter(ownerId: String): List<MessageEntity>
+
     // Get a message by its local ID
     @Query("SELECT * FROM ${Constants.MESSAGES_TABLE_NAME} WHERE msg_id = :msgId AND session_id = :sessionId")
     fun getMessageById(msgId : Int, sessionId: String): Flow<MessageEntity>
@@ -61,6 +84,9 @@ interface MessageDao {
     // Get messages by session id
     @Query("SELECT * FROM ${Constants.MESSAGES_TABLE_NAME} WHERE session_id = :sessionId ORDER BY created_at ASC")
     fun getMessagesBySessionId(sessionId : String): Flow<List<MessageEntity>>
+
+    @Query("""UPDATE ${Constants.MESSAGES_TABLE_NAME} SET owner_id = :newOwnerId WHERE owner_id = "owner_id_default" """)
+    fun updateAllMessagesWithNewOwnerId(newOwnerId: String)
 
     // Delete all messages
     @Query("DELETE FROM ${Constants.MESSAGES_TABLE_NAME}")
