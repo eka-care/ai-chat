@@ -2,10 +2,8 @@ package com.eka.conversation.ui.presentation.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
@@ -23,11 +21,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.unit.dp
 import com.eka.conversation.ChatInit
 import com.eka.conversation.common.Utils
@@ -46,11 +40,21 @@ fun SearchScreen(
 ) {
     var searchQuery by remember { mutableStateOf("") }
     var searchResults by remember { mutableStateOf(emptyList<MessageEntity>()) }
+    val chatInitConfig = ChatInit.getChatInitConfiguration()
     val listState = rememberLazyListState()
 
     LaunchedEffect(searchQuery) {
-        viewModel.searchMessages(searchQuery).collect { results ->
-            searchResults = results
+        if (chatInitConfig.chatGeneralConfiguration.filterApplyOnOwnerId) {
+            viewModel.searchMessages(
+                query = searchQuery,
+                ownerId = chatInitConfig.chatGeneralConfiguration.ownerId
+            ).collect { results ->
+                searchResults = results
+            }
+        } else {
+            viewModel.searchMessages(query = searchQuery, ownerId = "").collect { results ->
+                searchResults = results
+            }
         }
     }
 

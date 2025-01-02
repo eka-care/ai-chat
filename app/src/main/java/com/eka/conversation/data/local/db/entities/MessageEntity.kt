@@ -21,7 +21,11 @@ data class MessageEntity(
     @ColumnInfo(name = "created_at") val createdAt: Long,
     @ColumnInfo(name = "chat_context") val chatContext: String? = null,
     @ColumnInfo(name = "chat_sub_context") val chatSubContext: String? = null,
-    @ColumnInfo(name = "chat_session_config") val chatSessionConfig: String? = null
+    @ColumnInfo(name = "chat_session_config") val chatSessionConfig: String? = null,
+    @ColumnInfo(
+        name = "owner_id",
+        defaultValue = "owner_id_default"
+    ) val ownerId: String? = "owner_id_default",
 )
 
 @Keep

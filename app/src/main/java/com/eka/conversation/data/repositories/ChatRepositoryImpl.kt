@@ -54,7 +54,21 @@ class ChatRepositoryImpl(
     override fun getSearchResult(query: String): Flow<List<MessageEntity>> {
         try {
             val buildQuery = "*${query}*"
-            val response = chatDatabase.messageDao().searchMessages(buildQuery)
+            val response = chatDatabase.messageDao().searchMessages(query = buildQuery)
+            return response
+        } catch (_: Exception) {
+            return flow {}
+        }
+    }
+
+    override fun getSearchResultWithOwnerId(
+        query: String,
+        ownerId: String
+    ): Flow<List<MessageEntity>> {
+        try {
+            val buildQuery = "*${query}*"
+            val response = chatDatabase.messageDao()
+                .searchMessagesWithOwnerId(query = buildQuery, ownerId = ownerId)
             return response
         } catch (_ : Exception) {
             return flow{}
@@ -91,6 +105,27 @@ class ChatRepositoryImpl(
                 val res = chatDatabase.messageDao().getAllLastMessagesOfEachSession()
                 Response.Success(data = res)
             } catch (e : Exception) {
+                Response.Error(message = e.message.toString())
+            }
+        }
+    }
+
+    override suspend fun fillPastMessagesWithOwnerId(ownerId: String) {
+        withContext(Dispatchers.IO) {
+            try {
+                chatDatabase.messageDao().updateAllMessagesWithNewOwnerId(newOwnerId = ownerId)
+            } catch (e: Exception) {
+            }
+        }
+    }
+
+    override suspend fun getLastMessagesOfEachSessionIdFilterByOwnerId(ownerId: String): Response<List<MessageEntity>> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val res = chatDatabase.messageDao()
+                    .getAllLastMessagesOfEachSessionWithFilter(ownerId = ownerId)
+                Response.Success(data = res)
+            } catch (e: Exception) {
                 Response.Error(message = e.message.toString())
             }
         }

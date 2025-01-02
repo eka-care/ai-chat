@@ -13,9 +13,12 @@ interface ChatRepository {
     suspend fun updateMessage(message : MessageEntity)
     suspend fun getLastSessionId() : Flow<String>
     fun getSearchResult(query : String) : Flow<List<MessageEntity>>
+    fun getSearchResultWithOwnerId(query: String, ownerId: String): Flow<List<MessageEntity>>
     fun getMessagesBySessionId(sessionId : String) : Response<Flow<List<MessageEntity>>>
     suspend fun getMessageById(msgId : Int,sessionId: String) : Response<Flow<MessageEntity>>
     suspend fun getLastMessagesOfEachSessionId() : Response<List<MessageEntity>>
+    suspend fun fillPastMessagesWithOwnerId(ownerId: String)
+    suspend fun getLastMessagesOfEachSessionIdFilterByOwnerId(ownerId: String): Response<List<MessageEntity>>
     suspend fun deleteMessagesBySessionId(sessionId: String)
     suspend fun deleteMessageById(localMsgId: Int)
 

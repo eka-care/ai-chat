@@ -75,10 +75,23 @@ fun ThreadScreen(
 
     LaunchedEffect(searchQuery) {
         if(searchQuery.isEmpty()) {
-            viewModel.getLastMessagesForEachSession()
+            if (chatInitConfig.chatGeneralConfiguration.filterApplyOnOwnerId) {
+                viewModel.getLastMessagesForEachSession(ownerId = chatInitConfig.chatGeneralConfiguration.ownerId)
+            } else {
+                viewModel.getLastMessagesForEachSession(ownerId = "")
+            }
         } else {
-            viewModel.searchMessages(searchQuery).collect { results ->
-                searchResults = results
+            if (chatInitConfig.chatGeneralConfiguration.filterApplyOnOwnerId) {
+                viewModel.searchMessages(
+                    query = searchQuery,
+                    ownerId = chatInitConfig.chatGeneralConfiguration.ownerId
+                ).collect { results ->
+                    searchResults = results
+                }
+            } else {
+                viewModel.searchMessages(query = searchQuery, ownerId = "").collect { results ->
+                    searchResults = results
+                }
             }
         }
     }
