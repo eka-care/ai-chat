@@ -5,7 +5,6 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import com.eka.conversation.ChatInit
-import com.eka.conversation.data.remote.api.RetrofitClient
 import com.eka.conversation.ui.presentation.screens.ConversationScreen
 import com.eka.conversation.ui.presentation.viewmodels.ChatViewModel
 
@@ -20,16 +19,13 @@ class ConversationActivity : ComponentActivity() {
 
         setContent {
             ConversationScreen(
-                viewModel = chatViewModel,
+                this,
+//                viewModel = chatViewModel,
                 onBackPressedDispatcher = onBackPressedDispatcher
             )
         }
 
         val chatInitConfiguration = ChatInit.getChatInitConfiguration()
-
-        RetrofitClient.init(
-            baseUrl = chatInitConfiguration.networkConfiguration.baseUrl
-        )
     }
 
     override fun onResume() {

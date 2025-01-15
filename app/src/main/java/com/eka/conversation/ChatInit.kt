@@ -1,9 +1,8 @@
 package com.eka.conversation
 
 import android.content.Context
-import android.content.Intent
 import com.eka.conversation.common.models.ChatInitConfiguration
-import com.eka.conversation.ui.presentation.activities.ConversationActivity
+import com.eka.conversation.data.remote.api.RetrofitClient
 import com.eka.conversation.ui.presentation.viewmodels.ChatViewModel
 
 object ChatInit {
@@ -15,7 +14,10 @@ object ChatInit {
         context : Context
     ) {
         configuration = chatInitConfiguration
-        context.startActivity(Intent(context,ConversationActivity::class.java))
+        RetrofitClient.init(
+            baseUrl = chatInitConfiguration.networkConfiguration.baseUrl
+        )
+//        context.startActivity(Intent(context,ConversationActivity::class.java))
     }
 
     fun getChatInitConfiguration() : ChatInitConfiguration {

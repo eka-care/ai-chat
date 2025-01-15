@@ -83,6 +83,8 @@ class TestAppActivity : ComponentActivity() {
                     },
                     sessionIdentity = null,
                     shouldUseExistingSession = true,
+                    filterApplyOnOwnerId = false,
+                    ownerId = ""
                 ),
                 audioFeatureConfiguration = AudioFeatureConfiguration(
                     isEnabled = true,
