@@ -1,6 +1,7 @@
 package com.eka.conversation.domain.repositories
 
 import com.eka.conversation.common.Response
+import com.eka.conversation.common.models.NetworkConfiguration
 import com.eka.conversation.data.local.db.entities.MessageEntity
 import com.eka.conversation.data.local.db.entities.MessageFile
 import com.eka.conversation.data.remote.models.QueryPostRequest
@@ -17,6 +18,8 @@ interface ChatRepository {
     fun getMessagesBySessionId(sessionId : String) : Response<Flow<List<MessageEntity>>>
     suspend fun getMessageById(msgId : Int,sessionId: String) : Response<Flow<MessageEntity>>
     suspend fun getLastMessagesOfEachSessionId() : Response<List<MessageEntity>>
+
+    suspend fun getMessagesByContext(chatContext: String): Response<List<MessageEntity>>
     suspend fun fillPastMessagesWithOwnerId(ownerId: String)
     suspend fun getLastMessagesOfEachSessionIdFilterByOwnerId(ownerId: String): Response<List<MessageEntity>>
     suspend fun deleteMessagesBySessionId(sessionId: String)
@@ -29,4 +32,9 @@ interface ChatRepository {
 
     //remote
     suspend fun queryPost(queryPostRequest: QueryPostRequest): Flow<QueryResponseEvent>
+
+    suspend fun askNewQuery(
+        messageEntity: MessageEntity,
+        networkConfiguration: NetworkConfiguration
+    ): Flow<QueryResponseEvent>
 }

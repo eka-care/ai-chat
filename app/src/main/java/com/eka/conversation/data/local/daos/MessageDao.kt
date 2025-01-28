@@ -81,6 +81,9 @@ interface MessageDao {
     @Query("SELECT * FROM ${Constants.MESSAGES_TABLE_NAME} WHERE msg_id = :msgId AND session_id = :sessionId")
     fun getMessageById(msgId : Int, sessionId: String): Flow<MessageEntity>
 
+    @Query("SELECT * FROM ${Constants.MESSAGES_TABLE_NAME} WHERE chat_context = :context")
+    fun getMessagesByContext(context: String): List<MessageEntity>
+
     // Get messages by session id
     @Query("SELECT * FROM ${Constants.MESSAGES_TABLE_NAME} WHERE session_id = :sessionId ORDER BY created_at ASC")
     fun getMessagesBySessionId(sessionId : String): Flow<List<MessageEntity>>

@@ -3,10 +3,15 @@ package com.eka.conversation.data.repositories
 import android.util.Log
 import com.eka.conversation.ChatInit
 import com.eka.conversation.common.Response
+import com.eka.conversation.common.Utils
+import com.eka.conversation.common.models.NetworkConfiguration
 import com.eka.conversation.data.local.db.ChatDatabase
 import com.eka.conversation.data.local.db.entities.MessageEntity
 import com.eka.conversation.data.local.db.entities.MessageFile
+import com.eka.conversation.data.local.db.entities.models.MessageRole
 import com.eka.conversation.data.remote.api.RetrofitClient
+import com.eka.conversation.data.remote.models.PostMessage
+import com.eka.conversation.data.remote.models.QueryPostBody
 import com.eka.conversation.data.remote.models.QueryPostRequest
 import com.eka.conversation.data.remote.models.QueryResponseEvent
 import com.eka.conversation.domain.repositories.ChatRepository
@@ -19,7 +24,7 @@ import kotlinx.coroutines.withContext
 
 class ChatRepositoryImpl(
     private val chatDatabase : ChatDatabase
-) : ChatRepository{
+) : ChatRepository {
     override suspend fun insertMessages(messages: List<MessageEntity>) {
         withContext(Dispatchers.IO) {
             try {
@@ -105,6 +110,17 @@ class ChatRepositoryImpl(
                 val res = chatDatabase.messageDao().getAllLastMessagesOfEachSession()
                 Response.Success(data = res)
             } catch (e : Exception) {
+                Response.Error(message = e.message.toString())
+            }
+        }
+    }
+
+    override suspend fun getMessagesByContext(chatContext: String): Response<List<MessageEntity>> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val res = chatDatabase.messageDao().getMessagesByContext(context = chatContext)
+                Response.Success(data = res)
+            } catch (e: Exception) {
                 Response.Error(message = e.message.toString())
             }
         }
@@ -208,4 +224,120 @@ class ChatRepositoryImpl(
             Log.d("ChatRepo","Network Error: ${e.message.toString()}")
         }
     }.flowOn(Dispatchers.IO)
+
+    override suspend fun askNewQuery(
+        messageEntity: MessageEntity,
+        networkConfiguration: NetworkConfiguration
+    ): Flow<QueryResponseEvent> = flow {
+        try {
+            Log.d("askNewQuery", messageEntity.toString())
+            Log.d("askNewQuery", networkConfiguration.toString())
+            RetrofitClient.init(networkConfiguration.baseUrl)
+
+            val queryPostRequest = QueryPostRequest(
+                queryParams = networkConfiguration.params,
+                body = QueryPostBody(
+                    listOf(
+                        PostMessage(
+                            role = MessageRole.USER.role,
+                            text = messageEntity.messageText
+                        )
+                    )
+                )
+            )
+            val networkHeaders = networkConfiguration.headers
+            networkHeaders.put("Accept", "text/event-stream")
+            networkHeaders.put("Content-Type", "application/json")
+            val url = networkConfiguration.baseUrl + networkConfiguration.aiBotEndpoint
+            val res = RetrofitClient.chatApiService.postQuery(
+                params = queryPostRequest.queryParams,
+                body = queryPostRequest.body,
+                headers = networkHeaders,
+                url = url
+            )
+
+            var lastEventData: QueryResponseEvent? = null
+
+            if (res.isSuccessful) {
+                res.body()?.source()?.let { source ->
+                    while (!source.exhausted()) {
+                        val line = source.readUtf8Line()
+                        if (line != null && line.startsWith("data:")) {
+                            val eventData = line.removePrefix("data:").trim()
+                            val eventResponseData: QueryResponseEvent =
+                                Gson().fromJson(eventData, QueryResponseEvent::class.java)
+                            eventResponseData.isLastEvent = false
+                            lastEventData = eventResponseData
+                            lastEventData?.let {
+                                handleEventData(
+                                    eventData = it,
+                                    sessionId = messageEntity.sessionId,
+                                    chatContext = messageEntity.chatContext,
+                                    chatSubContext = messageEntity.chatSubContext,
+                                    chatSessionConfig = messageEntity.chatSessionConfig,
+                                    sessionIdentity = messageEntity.sessionIdentity,
+                                    ownerId = messageEntity.ownerId
+                                )
+                                emit(it)
+                            }
+                        }
+                    }
+                }
+                lastEventData?.let {
+                    it.isLastEvent = true
+                    handleEventData(
+                        eventData = it,
+                        sessionId = messageEntity.sessionId,
+                        chatContext = messageEntity.chatContext,
+                        chatSubContext = messageEntity.chatSubContext,
+                        chatSessionConfig = messageEntity.chatSessionConfig,
+                        sessionIdentity = messageEntity.sessionIdentity,
+                        ownerId = messageEntity.ownerId
+                    )
+                    emit(it)
+                }
+            } else {
+                emit(QueryResponseEvent(msgId = 0, overwrite = true, text = "", isLastEvent = true))
+            }
+        } catch (e: Exception) {
+            emit(QueryResponseEvent(msgId = 0, overwrite = true, text = "", isLastEvent = true))
+            Log.d("ChatRepo", "Network Error: ${e.message.toString()}")
+        }
+    }.flowOn(Dispatchers.IO)
+
+    private suspend fun handleEventData(
+        eventData: QueryResponseEvent,
+        sessionId: String,
+        chatContext: String?,
+        chatSubContext: String?,
+        chatSessionConfig: String?,
+        sessionIdentity: String?,
+        ownerId: String?
+    ) {
+        if (eventData.isLastEvent) {
+            return
+        }
+        if (eventData.msgId == null || eventData.overwrite == null || eventData.text == null) {
+            return
+        }
+        Log.d("handleEventData", eventData.toString())
+        insertMessages(
+            messages = listOf(
+                MessageEntity(
+                    msgId = eventData.msgId,
+                    sessionId = sessionId,
+                    createdAt = Utils.getCurrentUTCEpochMillis(),
+                    messageFiles = null,
+                    messageText = eventData.text,
+                    htmlString = null,
+                    role = MessageRole.AI,
+                    chatContext = chatContext,
+                    chatSubContext = chatSubContext,
+                    chatSessionConfig = chatSessionConfig,
+                    sessionIdentity = sessionIdentity,
+                    ownerId = ownerId
+                )
+            )
+        )
+    }
 }

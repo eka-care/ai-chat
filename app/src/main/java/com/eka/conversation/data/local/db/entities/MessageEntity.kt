@@ -6,6 +6,7 @@ import androidx.room.Entity
 import androidx.room.Fts4
 import com.eka.conversation.common.Constants
 import com.eka.conversation.data.local.db.entities.models.MessageRole
+import com.eka.conversation.data.local.db.entities.models.MessageType
 
 @Keep
 @Entity(tableName = Constants.MESSAGES_TABLE_NAME,
@@ -22,6 +23,7 @@ data class MessageEntity(
     @ColumnInfo(name = "chat_context") val chatContext: String? = null,
     @ColumnInfo(name = "chat_sub_context") val chatSubContext: String? = null,
     @ColumnInfo(name = "chat_session_config") val chatSessionConfig: String? = null,
+    @ColumnInfo(name = "msg_type") val msgType: MessageType = MessageType.TEXT,
     @ColumnInfo(
         name = "owner_id",
         defaultValue = "owner_id_default"
