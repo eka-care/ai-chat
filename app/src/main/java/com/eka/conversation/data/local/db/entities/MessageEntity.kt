@@ -15,13 +15,14 @@ data class MessageEntity(
     @ColumnInfo(name = "session_id") val sessionId : String,
     @ColumnInfo(name = "session_identity") val sessionIdentity: String? = null,
     @ColumnInfo(name = "role") val role : MessageRole,
-    @ColumnInfo(name = "message_files") val messageFiles : List<Int>? = null,
+    @ColumnInfo(name = "message_files") val messageFiles: List<String>? = null,
     @ColumnInfo(name = "message_text") val messageText : String? = null,
     @ColumnInfo(name = "message_html_text") val htmlString : String? = null,
     @ColumnInfo(name = "created_at") val createdAt: Long,
     @ColumnInfo(name = "chat_context") val chatContext: String? = null,
     @ColumnInfo(name = "chat_sub_context") val chatSubContext: String? = null,
     @ColumnInfo(name = "chat_session_config") val chatSessionConfig: String? = null,
+    @ColumnInfo(name = "msg_type") val msgType: String = "TEXT",
     @ColumnInfo(
         name = "owner_id",
         defaultValue = "owner_id_default"

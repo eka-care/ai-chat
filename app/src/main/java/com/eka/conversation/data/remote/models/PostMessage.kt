@@ -7,5 +7,7 @@ data class PostMessage(
     @SerializedName("role")
     val role: String?,
     @SerializedName("text")
-    val text: String?
+    val text: String?,
+    @SerializedName("vault_files")
+    val files: List<String>?
 )
