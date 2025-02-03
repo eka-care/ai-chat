@@ -107,7 +107,18 @@ class ChatRepositoryImpl(
     override suspend fun getLastMessagesOfEachSessionId(): Response<List<MessageEntity>> {
         return withContext(Dispatchers.IO) {
             try {
-                val res = chatDatabase.messageDao().getAllLastMessagesOfEachSession()
+                val res = chatDatabase.messageDao().getAllSession(null)
+                Response.Success(data = res)
+            } catch (e: Exception) {
+                Response.Error(message = e.message.toString())
+            }
+        }
+    }
+
+    override suspend fun getAllSession(ownerId: String?): Response<List<MessageEntity>> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val res = chatDatabase.messageDao().getAllSession(ownerId)
                 Response.Success(data = res)
             } catch (e : Exception) {
                 Response.Error(message = e.message.toString())
@@ -233,6 +244,7 @@ class ChatRepositoryImpl(
             Log.d("askNewQuery", messageEntity.toString())
             Log.d("askNewQuery", networkConfiguration.toString())
             RetrofitClient.init(networkConfiguration.baseUrl)
+            val msgId = messageEntity.msgId + 1
 
             val queryPostRequest = QueryPostRequest(
                 queryParams = networkConfiguration.params,
@@ -240,7 +252,8 @@ class ChatRepositoryImpl(
                     listOf(
                         PostMessage(
                             role = MessageRole.USER.role,
-                            text = messageEntity.messageText
+                            text = messageEntity.messageText,
+                            files = messageEntity.messageFiles
                         )
                     )
                 )
@@ -276,7 +289,8 @@ class ChatRepositoryImpl(
                                     chatSubContext = messageEntity.chatSubContext,
                                     chatSessionConfig = messageEntity.chatSessionConfig,
                                     sessionIdentity = messageEntity.sessionIdentity,
-                                    ownerId = messageEntity.ownerId
+                                    ownerId = messageEntity.ownerId,
+                                    msgId = msgId
                                 )
                                 emit(it)
                             }
@@ -286,6 +300,7 @@ class ChatRepositoryImpl(
                 lastEventData?.let {
                     it.isLastEvent = true
                     handleEventData(
+                        msgId = msgId,
                         eventData = it,
                         sessionId = messageEntity.sessionId,
                         chatContext = messageEntity.chatContext,
@@ -306,6 +321,7 @@ class ChatRepositoryImpl(
     }.flowOn(Dispatchers.IO)
 
     private suspend fun handleEventData(
+        msgId: Int,
         eventData: QueryResponseEvent,
         sessionId: String,
         chatContext: String?,
@@ -317,14 +333,14 @@ class ChatRepositoryImpl(
         if (eventData.isLastEvent) {
             return
         }
-        if (eventData.msgId == null || eventData.overwrite == null || eventData.text == null) {
+        if (eventData.overwrite == null || eventData.text == null) {
             return
         }
         Log.d("handleEventData", eventData.toString())
         insertMessages(
             messages = listOf(
                 MessageEntity(
-                    msgId = eventData.msgId,
+                    msgId = msgId,
                     sessionId = sessionId,
                     createdAt = Utils.getCurrentUTCEpochMillis(),
                     messageFiles = null,

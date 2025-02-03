@@ -207,7 +207,8 @@ fun askNewQuery(
                 listOf(
                     PostMessage(
                         role = MessageRole.USER.role,
-                        text = textInput
+                        text = textInput,
+                        files = null
                     )
                 )
             )

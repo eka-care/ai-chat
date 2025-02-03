@@ -50,8 +50,8 @@ object ChatInit {
         return AndroidAudioRecorder(context)
     }
 
-    suspend fun getAllSessions(): Response<List<MessageEntity>>? {
-        return repository?.getLastMessagesOfEachSessionId()
+    suspend fun getAllSessions(ownerId: String?): Response<List<MessageEntity>>? {
+        return repository?.getAllSession(ownerId = ownerId)
     }
 
     suspend fun getAllSessionByChatContext(chatContext: String): Response<List<MessageEntity>>? {

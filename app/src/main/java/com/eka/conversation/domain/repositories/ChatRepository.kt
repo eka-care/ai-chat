@@ -19,6 +19,8 @@ interface ChatRepository {
     suspend fun getMessageById(msgId : Int,sessionId: String) : Response<Flow<MessageEntity>>
     suspend fun getLastMessagesOfEachSessionId() : Response<List<MessageEntity>>
 
+    suspend fun getAllSession(ownerId: String?): Response<List<MessageEntity>>
+
     suspend fun getMessagesByContext(chatContext: String): Response<List<MessageEntity>>
     suspend fun fillPastMessagesWithOwnerId(ownerId: String)
     suspend fun getLastMessagesOfEachSessionIdFilterByOwnerId(ownerId: String): Response<List<MessageEntity>>
