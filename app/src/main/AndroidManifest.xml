@@ -8,7 +8,6 @@
 
         <activity
             android:name=".ui.presentation.activities.ConversationActivity"
-            android:exported="true"
             android:windowSoftInputMode="adjustResize"
             android:theme="@style/Theme.ChatBot">
         </activity>
