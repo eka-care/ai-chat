@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
 //    id("com.android.application")
     id("com.android.library")
@@ -6,13 +8,15 @@ plugins {
     alias(libs.plugins.jetbrains.kotlin.android)
 }
 
+val config =
+    Properties().apply { load(project.rootProject.file("config.properties").inputStream()) }
+
 android {
     namespace = "com.eka.conversation"
-    compileSdk = 34
+    compileSdk = 36
 
     defaultConfig {
-        minSdk = 23
-        targetSdk = 34
+        minSdk = 24
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -28,6 +32,16 @@ android {
                 "proguard-rules.pro"
             )
             buildConfigField("boolean", "IS_DEBUG", "true")
+            buildConfigField("String", "MATRIX_URL", "\"${config["MATRIX_URL"]}\"")
+        }
+        create("staging") {
+            isMinifyEnabled = false
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+            buildConfigField("boolean", "IS_DEBUG", "false")
+            buildConfigField("String", "MATRIX_URL", "\"${config["MATRIX_URL_DEV"]}\"")
         }
         release {
             isMinifyEnabled = false
@@ -36,6 +50,7 @@ android {
                 "proguard-rules.pro"
             )
             buildConfigField("boolean", "IS_DEBUG", "false")
+            buildConfigField("String", "MATRIX_URL", "\"${config["MATRIX_URL"]}\"")
         }
     }
     kotlin {
@@ -103,4 +118,5 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation(libs.compose.markdown)
     implementation("com.github.mrmike:ok2curl:0.8.0")
+    implementation(libs.eka.network.android)
 }

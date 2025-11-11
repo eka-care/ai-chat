@@ -7,12 +7,11 @@ plugins {
 
 android {
     namespace = "com.eka.testapp"
-    compileSdk = 34
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.eka.testapp"
-        minSdk = 23
-        targetSdk = 34
+        minSdk = 24
         versionCode = 1
         versionName = "1.0.0"
 

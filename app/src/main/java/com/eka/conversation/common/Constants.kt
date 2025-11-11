@@ -5,4 +5,5 @@ object Constants {
     const val MESSAGES_TABLE_NAME = "messages"
     const val MESSAGES_FTS_TABLE_NAME = "messages_fts"
     const val MESSAGES_FILES_TABLE_NAME = "messages_files"
+    const val APP_ID = "med_assist"
 }
