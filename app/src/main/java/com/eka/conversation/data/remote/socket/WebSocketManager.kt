@@ -36,7 +36,7 @@ class WebSocketManager(
         .build()
 
     private val _connectionState = MutableStateFlow<SocketConnectionState>(
-        SocketConnectionState.Disconnected
+        SocketConnectionState.Connecting
     )
 
     private val _events = MutableSharedFlow<SocketMessage>()
