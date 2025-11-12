@@ -1,6 +1,7 @@
 package com.eka.conversation.data.remote.socket.states
 
 sealed class SocketConnectionState {
+    object Idle : SocketConnectionState()
     object Connected : SocketConnectionState()
     object Connecting : SocketConnectionState()
     object Disconnecting : SocketConnectionState()

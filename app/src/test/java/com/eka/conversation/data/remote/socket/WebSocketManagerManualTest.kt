@@ -75,6 +75,10 @@ class WebSocketManagerManualTest {
         val job = scope.launch {
             manager.listenConnectionState().collect { state ->
                 when (state) {
+                    is SocketConnectionState.Idle -> {
+                        println("✓ State: Idle!")
+                    }
+
                     is SocketConnectionState.Connecting -> {
                         println("✓ State: Connecting...")
                     }

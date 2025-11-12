@@ -36,7 +36,7 @@ class WebSocketManager(
         .build()
 
     private val _connectionState = MutableStateFlow<SocketConnectionState>(
-        SocketConnectionState.Connecting
+        SocketConnectionState.Idle
     )
 
     private val _events = MutableSharedFlow<SocketMessage>()
@@ -96,9 +96,7 @@ class WebSocketManager(
     }
 
     fun connect() {
-        if (_connectionState.value is SocketConnectionState.Connected ||
-            _connectionState.value is SocketConnectionState.Connecting
-        ) {
+        if (_connectionState.value is SocketConnectionState.Connected || _connectionState.value is SocketConnectionState.Connecting) {
             ChatLogger.w(TAG, "Already connected or connecting")
             return
         }

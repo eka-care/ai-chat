@@ -6,7 +6,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
 import okhttp3.mockwebserver.MockWebServer
@@ -45,7 +44,7 @@ class WebSocketManagerTest {
     }
 
     @Test
-    fun `test initial connection state is Connecting`() = runTest {
+    fun `test initial connection state is Idle`() = runTest {
         // Given
         val url = mockWebServer.url("/").toString()
         val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
@@ -54,7 +53,7 @@ class WebSocketManagerTest {
         // Then - initial state should be Connecting
         webSocketManager.listenConnectionState().test {
             val state = awaitItem()
-            assertTrue(state is SocketConnectionState.Connecting)
+            assertTrue(state is SocketConnectionState.Idle)
             cancel()
         }
     }
@@ -99,10 +98,13 @@ class WebSocketManagerTest {
         // When
         webSocketManager.listenConnectionState().test {
             // Initial state
-            assertEquals(SocketConnectionState.Connecting, awaitItem())
+            assertEquals(SocketConnectionState.Idle, awaitItem())
 
             webSocketManager.connect()
-            delay(3000) // Wait for connection attempt
+
+            assertEquals(SocketConnectionState.Connecting, awaitItem())
+
+            Thread.sleep(3000) // Wait for connection attempt
 
             // Should get error state
             val state = awaitItem()
@@ -119,57 +121,37 @@ class WebSocketManagerTest {
 
     @Test
     fun `test disconnect flow`() = runTest {
-        // Given - test basic disconnect functionality without needing successful connection
-        val url = mockWebServer.url("/").toString()
+        // Use public echo server that actually supports WebSocket
+        val url = "wss://echo.websocket.org/"
         val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
         webSocketManager = WebSocketManager(url, scope)
 
         val states = mutableListOf<SocketConnectionState>()
 
-        println("=== Starting disconnect flow test ===")
-
-        // Launch a collector on the real dispatcher
         val collectionJob = scope.launch {
             webSocketManager.listenConnectionState().collect { state ->
                 synchronized(states) {
                     states.add(state)
                 }
-                println("[Disconnect test] State: ${state::class.simpleName}")
             }
         }
 
-        // Give collector time to start
-        Thread.sleep(100)
-
-        // Connect (may or may not succeed with MockWebServer)
-        println("Connecting...")
+        Thread.sleep(200)
         webSocketManager.connect()
-        Thread.sleep(500) // Brief wait
-
-        println("Disconnecting...")
-        // Disconnect - this should work regardless
+        Thread.sleep(5000) // Wait for connection
         webSocketManager.disconnect()
-        Thread.sleep(500) // Wait for disconnection
+        Thread.sleep(2000)
 
-        // Stop collecting
         collectionJob.cancel()
 
-        // Then - verify we have basic state transitions
-        println("=== Collected states: ${states.map { it::class.simpleName }} ===")
-
-        // Should at minimum have Connecting state (from initial state)
-        assertTrue(
-            "Should have Connecting state. States: ${states.map { it::class.simpleName }}",
-            states.any { it is SocketConnectionState.Connecting })
-
-        // Should reach some form of disconnected state after calling disconnect
         val hasDisconnectedState = states.any {
             it is SocketConnectionState.Disconnected || it is SocketConnectionState.Disconnecting
         }
-        assertTrue(
-            "Should have Disconnected or Disconnecting state. States: ${states.map { it::class.simpleName }}",
-            hasDisconnectedState
-        )
+
+        assertTrue("Should have states", states.isNotEmpty())
+        assertTrue("Should have Connecting", states.any { it is SocketConnectionState.Connecting })
+        assertTrue("Should have Connected", states.any { it is SocketConnectionState.Connected })
+        assertTrue("Should have disconnected state", hasDisconnectedState)
     }
 
     @Test
@@ -225,14 +207,14 @@ class WebSocketManagerTest {
             println("Starting connection attempt...")
             webSocketManager.connect()
 
-            // IMPORTANT: Must use Thread.sleep (real time) not delay (virtual time)
+            // IMPORTANT: Must use Thread.sleep (real time) not Thread.sleep (virtual time)
             // because WebSocketManager runs on Dispatchers.IO (real threads)
             // With maxReconnectAttempts=4:
             // - Initial attempt: ~0s
-            // - Retry 1: after 1s (delay = 1000ms * 2^0)
-            // - Retry 2: after 2s (delay = 1000ms * 2^1)
-            // - Retry 3: after 4s (delay = 1000ms * 2^2)
-            // - Retry 4: after 8s (delay = 1000ms * 2^3)
+            // - Retry 1: after 1s (Thread.sleep = 1000ms * 2^0)
+            // - Retry 2: after 2s (Thread.sleep = 1000ms * 2^1)
+            // - Retry 3: after 4s (Thread.sleep = 1000ms * 2^2)
+            // - Retry 4: after 8s (Thread.sleep = 1000ms * 2^3)
             // Total: ~16s + connection attempt time + buffer
 
             println("Waiting 20 seconds for all retries...")
@@ -273,7 +255,7 @@ class WebSocketManagerTest {
         webSocketManager = WebSocketManager(url, scope)
 
         webSocketManager.connect()
-        delay(2000)
+        Thread.sleep(2000)
 
         var states = mutableListOf<SocketConnectionState>()
 
@@ -282,7 +264,7 @@ class WebSocketManagerTest {
 
             // Try to connect again
             webSocketManager.connect()
-            delay(500)
+            Thread.sleep(500)
 
             // Should not add another Connecting state
             cancel()
