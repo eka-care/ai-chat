@@ -26,7 +26,7 @@ import java.util.concurrent.TimeUnit
 class WebSocketManager(
     private val url: String,
     private val scope: CoroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob()),
-    private val maxReconnectAttempts: Int = 3,
+    private val maxReconnectAttempts: Int = 3
 ) {
     private val client = OkHttpClient.Builder()
         .connectTimeout(10, TimeUnit.SECONDS)
@@ -50,6 +50,7 @@ class WebSocketManager(
         override fun onOpen(webSocket: WebSocket, response: Response) {
             ChatLogger.d(TAG, response.isSuccessful.toString())
             _connectionState.value = SocketConnectionState.Connected
+            sendAuthToken()
         }
 
         override fun onMessage(webSocket: WebSocket, text: String) {
@@ -80,6 +81,10 @@ class WebSocketManager(
             t.printStackTrace()
             _connectionState.value = SocketConnectionState.Error(Exception(t))
         }
+    }
+
+    private fun sendAuthToken() {
+
     }
 
     fun listenEvents() = _events.asSharedFlow()
@@ -146,19 +151,23 @@ class WebSocketManager(
     companion object {
         private const val TAG = "WebSocketManager"
 
+        private var sessionToken: String? = null
+
         @Volatile
         private var INSTANCE: WebSocketManager? = null
 
-        fun getDatabase(
+        fun getInstance(
             url: String,
             scope: CoroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob()),
             maxReconnectAttempts: Int = 3,
+            sessionToken: String
         ): WebSocketManager {
+            this.sessionToken = sessionToken
             return (INSTANCE ?: synchronized(this) {
                 val instance = WebSocketManager(
                     url = url,
                     scope = scope,
-                    maxReconnectAttempts = maxReconnectAttempts
+                    maxReconnectAttempts = maxReconnectAttempts,
                 )
                 INSTANCE = instance
                 return instance
