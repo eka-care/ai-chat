@@ -109,7 +109,12 @@ class WebSocketManager(
             .url(url)
             .build()
 
-        webSocket = client.newWebSocket(request, listener)
+        try {
+            webSocket = client.newWebSocket(request, listener)
+        } catch (e: Exception) {
+            _connectionState.value = SocketConnectionState.Error(e)
+            scheduleReconnect()
+        }
     }
 
     private fun scheduleReconnect() {
