@@ -1,10 +1,9 @@
 package com.eka.conversation.common
 
 import android.util.Log
-import com.eka.conversation.BuildConfig
 
 object ChatLogger {
-    var enableDebugLogs = BuildConfig.IS_DEBUG
+    var enableDebugLogs = false
     fun d(tag: String, msg: String) {
         if (enableDebugLogs) {
             Log.d(tag, msg)
