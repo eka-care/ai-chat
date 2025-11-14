@@ -5,6 +5,7 @@ import com.eka.conversation.data.remote.socket.events.BaseSocketEvent
 import com.eka.conversation.data.remote.socket.events.SocketEventType
 import com.google.gson.annotations.SerializedName
 
+@Keep
 data class ErrorEvent(
     @SerializedName("ts")
     override val timeStamp: Long? = null,

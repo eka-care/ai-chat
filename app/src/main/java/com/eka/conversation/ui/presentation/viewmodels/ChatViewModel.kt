@@ -315,9 +315,6 @@ class ChatViewModel(
                 })
             }
 
-            AudioProcessorType.VOSK -> {
-            }
-
             AudioProcessorType.GOOGLE_SPEECH_RECOGNIZER -> {
                 defaultAudioProcessor.processAudio(audioFile = null) { response ->
                     _currentTranscribeData.value = response
@@ -343,9 +340,6 @@ class ChatViewModel(
                         _currentTranscribeData.value = response
                     }
                 }
-            }
-
-            AudioProcessorType.VOSK -> {
             }
 
             AudioProcessorType.GOOGLE_SPEECH_RECOGNIZER -> {
