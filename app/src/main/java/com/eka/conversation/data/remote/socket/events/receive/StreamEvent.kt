@@ -1,12 +1,15 @@
-package com.eka.conversation.data.remote.socket.events
+package com.eka.conversation.data.remote.socket.events.receive
 
 import androidx.annotation.Keep
+import com.eka.conversation.data.remote.socket.events.BaseSocketEvent
+import com.eka.conversation.data.remote.socket.events.SocketContentType
+import com.eka.conversation.data.remote.socket.events.SocketEventType
 import com.google.gson.annotations.SerializedName
 
 @Keep
 data class StreamEvent(
     @SerializedName("ts")
-    override val timeStamp: Long,
+    override val timeStamp: Long? = null,
     @SerializedName("ev")
     override val eventType: SocketEventType,
     @SerializedName("ct")
@@ -17,15 +20,9 @@ data class StreamEvent(
     val data: StreamData
 ) : BaseSocketEvent(timeStamp = timeStamp, eventType = eventType)
 
-//"audio": "Audio In ByteArray",
-//"format": "audio/mp4"
 @Keep
 data class StreamData(
     @SerializedName("text")
-    val text: String? = null,
-    @SerializedName("audio")
-    val audio: String? = null,
-    @SerializedName("format")
-    val format: String? = null
+    val text: String? = null
 )
 

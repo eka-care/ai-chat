@@ -6,7 +6,7 @@ import com.google.gson.annotations.SerializedName
 @Keep
 open class BaseSocketEvent(
     @SerializedName("ts")
-    open val timeStamp: Long,
+    open val timeStamp: Long? = null,
     @SerializedName("ev")
     open val eventType: SocketEventType
 )
