@@ -9,7 +9,6 @@ data class ChatGeneralConfiguration(
     val chatContext: String,
     val chatSubContext: String,
     val chatSessionConfig: String,
-    val onSessionInvokeNetworkConfiguration: (String) -> NetworkConfiguration,
     val isSortEnabled: Boolean = true,
     val isSearchEnabled: Boolean = true,
     val sortBottomSheetLayout: @Composable (() -> Unit) -> Unit?,

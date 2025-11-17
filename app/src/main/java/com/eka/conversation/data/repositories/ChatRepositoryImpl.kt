@@ -1,10 +1,8 @@
 package com.eka.conversation.data.repositories
 
 import android.util.Log
-import com.eka.conversation.ChatInit
 import com.eka.conversation.common.Response
 import com.eka.conversation.common.Utils
-import com.eka.conversation.common.models.NetworkConfiguration
 import com.eka.conversation.data.local.db.ChatDatabase
 import com.eka.conversation.data.local.db.entities.MessageEntity
 import com.eka.conversation.data.local.db.entities.MessageFile
@@ -192,62 +190,63 @@ class ChatRepositoryImpl(
 
     override suspend fun queryPost(queryPostRequest: QueryPostRequest): Flow<QueryResponseEvent> =
         flow {
-        try {
-            val networkConfiguration = ChatInit.getChatInitConfiguration().networkConfiguration
-            val networkHeaders = networkConfiguration.headers
-            networkHeaders.put("Accept","text/event-stream")
-            networkHeaders.put("Content-Type","application/json")
-            val url = networkConfiguration.baseUrl + networkConfiguration.aiBotEndpoint
-            val res = RetrofitClient.chatApiService.postQuery(
-                params = queryPostRequest.queryParams,
-                body = queryPostRequest.body,
-                headers = networkHeaders,
-                url = url
-            )
 
-            var lastEventData: QueryResponseEvent? = null
-
-            if(res.isSuccessful) {
-                res.body()?.source()?.let { source ->
-                    while (!source.exhausted()) {
-                        val line = source.readUtf8Line()
-                        if (line != null && line.startsWith("data:")) {
-                            val eventData = line.removePrefix("data:").trim()
-                            val eventResponseData: QueryResponseEvent =
-                                Gson().fromJson(eventData, QueryResponseEvent::class.java)
-                            eventResponseData.isLastEvent = false
-                            lastEventData = eventResponseData
-                            lastEventData?.let {
-                                emit(it)
-                            }
-                        }
-                    }
-                }
-                lastEventData?.let {
-                    it.isLastEvent = true
-                    emit(it)
-                }
-            } else {
-                emit(QueryResponseEvent(msgId = 0, overwrite = true, text = "", isLastEvent = true))
-            }
-        } catch (e : Exception) {
+//        try {
+//            val networkConfiguration = ChatInit.getChatInitConfiguration()
+//            val networkHeaders = networkConfiguration.headers
+//            networkHeaders.put("Accept","text/event-stream")
+//            networkHeaders.put("Content-Type","application/json")
+//            val url = networkConfiguration.baseUrl + networkConfiguration.aiBotEndpoint
+//            val res = RetrofitClient.chatApiService.postQuery(
+//                params = queryPostRequest.queryParams,
+//                body = queryPostRequest.body,
+//                headers = networkHeaders,
+//                url = url
+//            )
+//
+//            var lastEventData: QueryResponseEvent? = null
+//
+//            if(res.isSuccessful) {
+//                res.body()?.source()?.let { source ->
+//                    while (!source.exhausted()) {
+//                        val line = source.readUtf8Line()
+//                        if (line != null && line.startsWith("data:")) {
+//                            val eventData = line.removePrefix("data:").trim()
+//                            val eventResponseData: QueryResponseEvent =
+//                                Gson().fromJson(eventData, QueryResponseEvent::class.java)
+//                            eventResponseData.isLastEvent = false
+//                            lastEventData = eventResponseData
+//                            lastEventData?.let {
+//                                emit(it)
+//                            }
+//                        }
+//                    }
+//                }
+//                lastEventData?.let {
+//                    it.isLastEvent = true
+//                    emit(it)
+//                }
+//            } else {
+//                emit(QueryResponseEvent(msgId = 0, overwrite = true, text = "", isLastEvent = true))
+//            }
+//        } catch (e : Exception) {
+//            emit(QueryResponseEvent(msgId = 0, overwrite = true, text = "", isLastEvent = true))
+//            Log.d("ChatRepo","Network Error: ${e.message.toString()}")
+//        }
             emit(QueryResponseEvent(msgId = 0, overwrite = true, text = "", isLastEvent = true))
-            Log.d("ChatRepo","Network Error: ${e.message.toString()}")
-        }
     }.flowOn(Dispatchers.IO)
 
     override suspend fun askNewQuery(
-        messageEntity: MessageEntity,
-        networkConfiguration: NetworkConfiguration
+        messageEntity: MessageEntity
     ): Flow<QueryResponseEvent> = flow {
         try {
             Log.d("askNewQuery", messageEntity.toString())
-            Log.d("askNewQuery", networkConfiguration.toString())
-            RetrofitClient.init(networkConfiguration.baseUrl)
+//            Log.d("askNewQuery", networkConfiguration.toString())
+//            RetrofitClient.init(networkConfiguration.baseUrl)
             val msgId = messageEntity.msgId + 1
 
             val queryPostRequest = QueryPostRequest(
-                queryParams = networkConfiguration.params,
+                queryParams = emptyMap(),
                 body = QueryPostBody(
                     listOf(
                         PostMessage(
@@ -258,15 +257,15 @@ class ChatRepositoryImpl(
                     )
                 )
             )
-            val networkHeaders = networkConfiguration.headers
-            networkHeaders.put("Accept", "text/event-stream")
-            networkHeaders.put("Content-Type", "application/json")
-            val url = networkConfiguration.baseUrl + networkConfiguration.aiBotEndpoint
+//            val networkHeaders = networkConfiguration.headers
+//            networkHeaders.put("Accept", "text/event-stream")
+//            networkHeaders.put("Content-Type", "application/json")
+//            val url = networkConfiguration.baseUrl + networkConfiguration.aiBotEndpoint
             val res = RetrofitClient.chatApiService.postQuery(
                 params = queryPostRequest.queryParams,
                 body = queryPostRequest.body,
-                headers = networkHeaders,
-                url = url
+                url = "",
+                headers = emptyMap()
             )
 
             var lastEventData: QueryResponseEvent? = null

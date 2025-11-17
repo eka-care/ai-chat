@@ -1,7 +1,6 @@
 package com.eka.conversation.domain.repositories
 
 import com.eka.conversation.common.Response
-import com.eka.conversation.common.models.NetworkConfiguration
 import com.eka.conversation.data.local.db.entities.MessageEntity
 import com.eka.conversation.data.local.db.entities.MessageFile
 import com.eka.conversation.data.remote.models.QueryPostRequest
@@ -36,7 +35,6 @@ interface ChatRepository {
     suspend fun queryPost(queryPostRequest: QueryPostRequest): Flow<QueryResponseEvent>
 
     suspend fun askNewQuery(
-        messageEntity: MessageEntity,
-        networkConfiguration: NetworkConfiguration
+        messageEntity: MessageEntity
     ): Flow<QueryResponseEvent>
 }

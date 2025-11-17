@@ -1,26 +1,21 @@
-package com.eka.conversation
+package com.eka.conversation.client
 
 import android.content.Context
-import android.content.Intent
 import android.util.Log
 import com.eka.conversation.common.Response
 import com.eka.conversation.common.models.ChatInitConfiguration
-import com.eka.conversation.common.models.NetworkConfiguration
 import com.eka.conversation.data.local.db.ChatDatabase
 import com.eka.conversation.data.local.db.entities.MessageEntity
 import com.eka.conversation.data.remote.models.QueryResponseEvent
 import com.eka.conversation.data.repositories.ChatRepositoryImpl
 import com.eka.conversation.domain.repositories.ChatRepository
 import com.eka.conversation.features.audio.AndroidAudioRecorder
-import com.eka.conversation.ui.presentation.activities.ConversationActivity
-import com.eka.conversation.ui.presentation.viewmodels.ChatViewModel
 import kotlinx.coroutines.flow.Flow
 
 object ChatInit {
-    private var configuration : ChatInitConfiguration? = null
+    private var configuration: ChatInitConfiguration? = null
     private var database: ChatDatabase? = null
     private var repository: ChatRepository? = null
-    private var viewModel: ChatViewModel? = null
 
     fun initialize(
         chatInitConfiguration: ChatInitConfiguration?,
@@ -59,15 +54,12 @@ object ChatInit {
     }
 
     suspend fun askNewQuery(
-        messageEntity: MessageEntity,
-        networkConfiguration: NetworkConfiguration
+        messageEntity: MessageEntity
     ): Flow<QueryResponseEvent>? {
         repository?.insertMessages(listOf(messageEntity))
         Log.d("askNewQuery", messageEntity.toString())
-        Log.d("askNewQuery", networkConfiguration.toString())
         val response = repository?.askNewQuery(
-            messageEntity = messageEntity,
-            networkConfiguration = networkConfiguration
+            messageEntity = messageEntity
         )
         return response
     }
@@ -76,12 +68,8 @@ object ChatInit {
         repository?.insertMessages(messages)
     }
 
-    fun startChatActivity(context: Context) {
-        context.startActivity(Intent(context,ConversationActivity::class.java))
-    }
-
-    fun getChatInitConfiguration() : ChatInitConfiguration {
-        if(configuration == null) {
+    fun getChatInitConfiguration(): ChatInitConfiguration {
+        if (configuration == null) {
             throw IllegalStateException("Chat Init configuration not initialized")
         }
         return configuration!!
