@@ -1,27 +1,34 @@
 package com.eka.conversation.data.repositories
 
-import com.eka.conversation.BuildConfig
-import com.eka.conversation.common.Constants
+import com.eka.conversation.client.ChatInit
+import com.eka.conversation.common.models.AuthConfiguration
 import com.eka.conversation.data.remote.api.ChatSessionService
 import com.eka.conversation.data.remote.models.requests.CreateSessionRequest
 import com.eka.conversation.data.remote.models.responses.CreateSessionResponse
 import com.eka.conversation.data.remote.models.responses.RefreshTokenResponse
 import com.eka.conversation.data.remote.models.responses.SessionStatusResponse
+import com.eka.conversation.data.remote.utils.UrlUtils
 import com.eka.conversation.domain.repositories.SessionManagementRepository
 import com.eka.networking.client.EkaNetwork
 import com.haroldadmin.cnradapter.NetworkResponse
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-class SessionManagementRepositoryImpl : SessionManagementRepository {
+class SessionManagementRepositoryImpl(
+    private val authConfiguration: AuthConfiguration
+) : SessionManagementRepository {
 
     val matrixService = EkaNetwork.creatorFor(
-        appId = Constants.APP_ID,
+        appId = ChatInit.getChatInitConfiguration().networkConfig.appId,
         service = ChatSessionService.SERVICE_NAME,
     ).create(
         serviceClass = ChatSessionService::class.java,
-        serviceUrl = BuildConfig.MATRIX_URL
+        serviceUrl = UrlUtils.getMatrixEndpoint()
     )
+
+    val baseHeaders = HashMap<String, String>().apply {
+        put("x-agent-id", authConfiguration.agentId)
+    }
 
     override suspend fun createNewSession(userId: String): NetworkResponse<CreateSessionResponse, CreateSessionResponse> =
         withContext(Dispatchers.IO) {
@@ -29,9 +36,8 @@ class SessionManagementRepositoryImpl : SessionManagementRepository {
                 val createSessionRequest = CreateSessionRequest(
                     userId = userId
                 )
-                val headers = HashMap<String, Any>()
                 val response = matrixService.createNewSession(
-                    headerMap = headers,
+                    headerMap = baseHeaders,
                     sessionRequest = createSessionRequest
                 )
                 response
@@ -44,8 +50,9 @@ class SessionManagementRepositoryImpl : SessionManagementRepository {
         withContext(Dispatchers.IO) {
             try {
                 val headers = HashMap<String, Any>()
+                headers.put("x-agent-id", authConfiguration.agentId)
                 val response = matrixService.checkSessionStatus(
-                    headerMap = headers,
+                    headerMap = baseHeaders,
                     sessionId = sessionId
                 )
                 response
@@ -58,8 +65,9 @@ class SessionManagementRepositoryImpl : SessionManagementRepository {
         withContext(Dispatchers.IO) {
             try {
                 val headers = HashMap<String, Any>()
+                headers.put("x-agent-id", authConfiguration.agentId)
                 val response = matrixService.refreshSessionToken(
-                    headerMap = headers,
+                    headerMap = baseHeaders,
                     sessionId = sessionId
                 )
                 response

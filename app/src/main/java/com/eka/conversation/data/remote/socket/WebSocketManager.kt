@@ -1,6 +1,10 @@
 package com.eka.conversation.data.remote.socket
 
 import com.eka.conversation.common.ChatLogger
+import com.eka.conversation.common.Utils
+import com.eka.conversation.data.remote.socket.events.SocketEventType
+import com.eka.conversation.data.remote.socket.events.send.AuthData
+import com.eka.conversation.data.remote.socket.events.send.AuthEvent
 import com.eka.conversation.data.remote.socket.states.SocketConnectionState
 import com.eka.conversation.data.remote.socket.states.SocketMessage
 import kotlinx.coroutines.CoroutineScope
@@ -26,7 +30,9 @@ import java.util.concurrent.TimeUnit
 class WebSocketManager(
     private val url: String,
     private val scope: CoroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob()),
-    private val maxReconnectAttempts: Int = 3
+    private val maxReconnectAttempts: Int = 3,
+    private val sessionToken: String,
+    private val agentId: String
 ) {
     private val client = OkHttpClient.Builder()
         .connectTimeout(10, TimeUnit.SECONDS)
@@ -36,7 +42,7 @@ class WebSocketManager(
         .build()
 
     private val _connectionState = MutableStateFlow<SocketConnectionState>(
-        SocketConnectionState.Idle
+        SocketConnectionState.Starting
     )
 
     private val _events = MutableSharedFlow<SocketMessage>()
@@ -84,7 +90,23 @@ class WebSocketManager(
     }
 
     private fun sendAuthToken() {
-
+        val authEvent = SocketUtils.sendEvent(
+            AuthEvent(
+                timeStamp = Utils.getCurrentUTCEpochMillis(),
+                eventId = Utils.getCurrentUTCEpochMillis().toString(),
+                eventType = SocketEventType.AUTH,
+                data = AuthData(
+                    token = sessionToken
+                )
+            )
+        )
+        if (authEvent == null) {
+            _connectionState.value =
+                SocketConnectionState.Error(Exception("Authentication failed!"))
+            ChatLogger.e(TAG, "authEvent is null")
+            return
+        }
+        webSocket?.send(authEvent)
     }
 
     fun listenEvents() = _events.asSharedFlow()
@@ -110,6 +132,7 @@ class WebSocketManager(
 
         val request = Request.Builder()
             .url(url)
+            .addHeader("x-agent-id", agentId)
             .build()
 
         try {
@@ -151,27 +174,20 @@ class WebSocketManager(
     companion object {
         private const val TAG = "WebSocketManager"
 
-        private var sessionToken: String? = null
-
-        @Volatile
-        private var INSTANCE: WebSocketManager? = null
-
         fun getInstance(
             url: String,
             scope: CoroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob()),
             maxReconnectAttempts: Int = 3,
-            sessionToken: String
+            sessionToken: String,
+            agentId: String
         ): WebSocketManager {
-            this.sessionToken = sessionToken
-            return (INSTANCE ?: synchronized(this) {
-                val instance = WebSocketManager(
-                    url = url,
-                    scope = scope,
-                    maxReconnectAttempts = maxReconnectAttempts,
-                )
-                INSTANCE = instance
-                return instance
-            })
+            return WebSocketManager(
+                url = url,
+                scope = scope,
+                maxReconnectAttempts = maxReconnectAttempts,
+                sessionToken = sessionToken,
+                agentId = agentId
+            )
         }
     }
 }

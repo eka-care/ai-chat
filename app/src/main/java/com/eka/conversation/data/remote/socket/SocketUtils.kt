@@ -7,6 +7,7 @@ import com.eka.conversation.data.remote.socket.events.receive.EndOfStreamEvent
 import com.eka.conversation.data.remote.socket.events.receive.ErrorEvent
 import com.eka.conversation.data.remote.socket.events.receive.ReceiveChatEvent
 import com.eka.conversation.data.remote.socket.events.receive.StreamEvent
+import com.eka.conversation.data.remote.socket.events.send.AuthEvent
 import com.eka.conversation.data.remote.socket.events.send.SendChatEvent
 import com.eka.conversation.data.remote.socket.events.send.SendStreamEvent
 import com.google.gson.Gson
@@ -59,7 +60,7 @@ object SocketUtils {
             }
 
             SocketEventType.AUTH -> {
-                Gson().toJson(socketEvent, SendStreamEvent::class.java)
+                Gson().toJson(socketEvent, AuthEvent::class.java)
             }
 
             else -> {

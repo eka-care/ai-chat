@@ -15,19 +15,19 @@ interface ChatSessionService {
     @POST("med-assist/session")
     suspend fun createNewSession(
         @Body sessionRequest: CreateSessionRequest,
-        @HeaderMap headerMap: Map<String, Any>
+        @HeaderMap headerMap: Map<String, String>
     ): NetworkResponse<CreateSessionResponse, CreateSessionResponse>
 
     @GET("med-assist/session/{session_id}")
     suspend fun checkSessionStatus(
         @Path("session_id") sessionId: String,
-        @HeaderMap headerMap: Map<String, Any>
+        @HeaderMap headerMap: Map<String, String>
     ): NetworkResponse<SessionStatusResponse, SessionStatusResponse>
 
     @GET("med-assist/session/{session_id}/refresh")
     suspend fun refreshSessionToken(
         @Path("session_id") sessionId: String,
-        @HeaderMap headerMap: Map<String, Any>
+        @HeaderMap headerMap: Map<String, String>
     ): NetworkResponse<RefreshTokenResponse, RefreshTokenResponse>
 
     companion object {

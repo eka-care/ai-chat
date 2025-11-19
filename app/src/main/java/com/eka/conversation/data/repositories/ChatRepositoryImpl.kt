@@ -91,11 +91,7 @@ class ChatRepositoryImpl(
         return withContext(Dispatchers.IO) {
             try {
                 val response = chatDatabase.messageDao().getMessageById(msgId = msgId,sessionId = sessionId)
-                if(response == null) {
-                    Response.Error("Something went wrong!")
-                } else {
-                    Response.Success(data = response)
-                }
+                Response.Success(data = response)
             } catch (e : Exception) {
                 Response.Error(message = e.message.toString())
             }

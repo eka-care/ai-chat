@@ -6,28 +6,57 @@ import com.eka.conversation.common.Response
 import com.eka.conversation.common.models.ChatInitConfiguration
 import com.eka.conversation.data.local.db.ChatDatabase
 import com.eka.conversation.data.local.db.entities.MessageEntity
+import com.eka.conversation.data.local.preferences.ChatSharedPreferences
 import com.eka.conversation.data.remote.models.QueryResponseEvent
 import com.eka.conversation.data.repositories.ChatRepositoryImpl
+import com.eka.conversation.data.repositories.SessionManagementRepositoryImpl
 import com.eka.conversation.domain.repositories.ChatRepository
+import com.eka.conversation.domain.repositories.SessionManagementRepository
 import com.eka.conversation.features.audio.AndroidAudioRecorder
+import com.eka.networking.client.EkaNetwork
 import kotlinx.coroutines.flow.Flow
 
 object ChatInit {
     private var configuration: ChatInitConfiguration? = null
     private var database: ChatDatabase? = null
     private var repository: ChatRepository? = null
+    private var sessionRepository: SessionManagementRepository? = null
+    private var chatSharedPreferences: ChatSharedPreferences? = null
+    private var chatSessionManager: ChatSessionManager? = null
 
     fun initialize(
-        chatInitConfiguration: ChatInitConfiguration?,
+        chatInitConfiguration: ChatInitConfiguration,
         context: Context
     ) {
         configuration = chatInitConfiguration
-        database = ChatDatabase.getDatabase(context = context)
-        database?.let {
-            repository = ChatRepositoryImpl(it)
+        try {
+            EkaNetwork.init(
+                networkConfig = chatInitConfiguration.networkConfig
+            )
+            database = ChatDatabase.getDatabase(context = context)
+            database?.let {
+                repository = ChatRepositoryImpl(it)
+                chatSharedPreferences = ChatSharedPreferences(context = context.applicationContext)
+                sessionRepository = SessionManagementRepositoryImpl(
+                    authConfiguration = chatInitConfiguration.authConfiguration
+                )
+                chatSessionManager = ChatSessionManager(
+                    chatPref = chatSharedPreferences!!,
+                    authConfiguration = chatInitConfiguration.authConfiguration,
+                    sessionManagementRepository = sessionRepository!!
+                )
+            }
+        } catch (e: Exception) {
+            Log.e("ChatSDK", "ChatSDK initialization failed", e)
         }
         Log.d("ChatSDK", "ChatSDK initialized")
     }
+
+    fun startChatSession(userId: String) {
+        chatSessionManager?.startExistingChatSession(userId = userId)
+    }
+
+    fun listenConnectionState() = chatSessionManager?.listenConnectionState()
 
     fun getMessagesBySessionId(sessionId: String): Response<Flow<List<MessageEntity>>>? {
         return repository?.getMessagesBySessionId(sessionId)

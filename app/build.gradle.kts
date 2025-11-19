@@ -33,6 +33,7 @@ android {
             )
             buildConfigField("boolean", "IS_DEBUG", "true")
             buildConfigField("String", "MATRIX_URL", "\"${config["MATRIX_URL"]}\"")
+            buildConfigField("String", "MATRIX_URL_DEV", "\"${config["MATRIX_URL_DEV"]}\"")
         }
         create("staging") {
             isMinifyEnabled = false
@@ -41,7 +42,8 @@ android {
                 "proguard-rules.pro"
             )
             buildConfigField("boolean", "IS_DEBUG", "false")
-            buildConfigField("String", "MATRIX_URL", "\"${config["MATRIX_URL_DEV"]}\"")
+            buildConfigField("String", "MATRIX_URL", "\"${config["MATRIX_URL"]}\"")
+            buildConfigField("String", "MATRIX_URL_DEV", "\"${config["MATRIX_URL_DEV"]}\"")
         }
         release {
             isMinifyEnabled = false
@@ -51,6 +53,7 @@ android {
             )
             buildConfigField("boolean", "IS_DEBUG", "false")
             buildConfigField("String", "MATRIX_URL", "\"${config["MATRIX_URL"]}\"")
+            buildConfigField("String", "MATRIX_URL_DEV", "\"${config["MATRIX_URL_DEV"]}\"")
         }
     }
     kotlin {
@@ -126,5 +129,5 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation(libs.compose.markdown)
     implementation("com.github.mrmike:ok2curl:0.8.0")
-    implementation(libs.eka.network.android)
+    api(libs.eka.network.android)
 }

@@ -3,7 +3,7 @@ package com.eka.conversation.common
 import android.util.Log
 
 object ChatLogger {
-    var enableDebugLogs = false
+    var enableDebugLogs = true
     fun d(tag: String, msg: String) {
         if (enableDebugLogs) {
             Log.d(tag, msg)
