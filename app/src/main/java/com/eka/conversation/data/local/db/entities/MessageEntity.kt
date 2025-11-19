@@ -3,18 +3,33 @@ package com.eka.conversation.data.local.db.entities
 import androidx.annotation.Keep
 import androidx.room.ColumnInfo
 import androidx.room.Entity
+import androidx.room.ForeignKey
 import androidx.room.Fts4
+import androidx.room.PrimaryKey
 import com.eka.conversation.common.Constants
 import com.eka.conversation.data.local.db.entities.models.MessageRole
 import com.google.gson.annotations.SerializedName
 
 @Keep
-@Entity(tableName = Constants.MESSAGES_TABLE_NAME,
-    primaryKeys = ["msg_id","session_id"])
+@Entity(
+    tableName = Constants.MESSAGES_TABLE_NAME,
+    foreignKeys = [
+        ForeignKey(
+            entity = ChatSession::class,
+            parentColumns = ["session_id"],
+            childColumns = ["session_id"],
+            onDelete = ForeignKey.CASCADE
+        )
+    ],
+    indices = [
+        androidx.room.Index(value = ["session_id"]),
+    ]
+)
 data class MessageEntity(
+    @PrimaryKey
     @ColumnInfo(name = "msg_id")
     @SerializedName("msg_id")
-    val msgId: Int,
+    val msgId: String,
     @ColumnInfo(name = "session_id")
     @SerializedName("session_id")
     val sessionId: String,
@@ -60,7 +75,7 @@ data class MessageEntity(
 @Fts4(contentEntity = MessageEntity::class)
 @Entity(tableName = Constants.MESSAGES_FTS_TABLE_NAME)
 data class MessageFTSEntity(
-    @ColumnInfo(name = "msg_id") val msgId : Int,
+    @ColumnInfo(name = "msg_id") val msgId: String,
     @ColumnInfo(name = "session_id") val sessionId : String,
     @ColumnInfo(name = "message_text") val messageText: String,
     @ColumnInfo(name = "chat_context") val chatContext: String? = null,

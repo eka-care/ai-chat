@@ -1,5 +1,6 @@
 package com.eka.conversation.data.remote.socket
 
+import android.util.Log
 import com.eka.conversation.common.ChatLogger
 import com.eka.conversation.common.Utils
 import com.eka.conversation.data.remote.socket.events.SocketEventType
@@ -7,6 +8,8 @@ import com.eka.conversation.data.remote.socket.events.send.AuthData
 import com.eka.conversation.data.remote.socket.events.send.AuthEvent
 import com.eka.conversation.data.remote.socket.states.SocketConnectionState
 import com.eka.conversation.data.remote.socket.states.SocketMessage
+import com.moczul.ok2curl.CurlInterceptor
+import com.moczul.ok2curl.logger.Logger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -39,6 +42,21 @@ class WebSocketManager(
         .readTimeout(30, TimeUnit.SECONDS)
         .writeTimeout(30, TimeUnit.SECONDS)
         .pingInterval(30, TimeUnit.SECONDS)
+        .addInterceptor(
+            CurlInterceptor(object : Logger {
+                override fun log(message: String) {
+                    Log.v(TAG, message)
+                }
+            })
+        ).addInterceptor { chain ->
+            val response = chain.proceed(chain.request())
+            Log.d(TAG, chain.request().toString())
+            Log.d(TAG, response.toString())
+            if (!response.isSuccessful) {
+                Log.d(TAG, "HTTP ${response.code}: ${response.body?.string()}")
+            }
+            response
+        }
         .build()
 
     private val _connectionState = MutableStateFlow<SocketConnectionState>(
@@ -61,12 +79,16 @@ class WebSocketManager(
 
         override fun onMessage(webSocket: WebSocket, text: String) {
             ChatLogger.d(TAG, "onMessage TextType $text")
-            _events.tryEmit(SocketMessage.TextMessage(text = text))
+            scope.launch {
+                _events.emit(SocketMessage.TextMessage(text = text))
+            }
         }
 
         override fun onMessage(webSocket: WebSocket, bytes: ByteString) {
             ChatLogger.d(TAG, "onMessage BytesType $bytes")
-            _events.tryEmit(SocketMessage.ByteStringMessage(bytes = bytes))
+            scope.launch {
+                _events.emit(SocketMessage.ByteStringMessage(bytes = bytes))
+            }
         }
 
         override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
@@ -100,6 +122,7 @@ class WebSocketManager(
                 )
             )
         )
+        ChatLogger.d(TAG, "authEvent : $authEvent")
         if (authEvent == null) {
             _connectionState.value =
                 SocketConnectionState.Error(Exception("Authentication failed!"))

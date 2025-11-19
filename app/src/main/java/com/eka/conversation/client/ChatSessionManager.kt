@@ -1,16 +1,32 @@
 package com.eka.conversation.client
 
 import com.eka.conversation.common.ChatLogger
+import com.eka.conversation.common.Utils
 import com.eka.conversation.common.models.AuthConfiguration
 import com.eka.conversation.data.local.preferences.ChatSharedPreferences
 import com.eka.conversation.data.remote.models.responses.CreateSessionResponse
+import com.eka.conversation.data.remote.models.responses.RefreshTokenResponse
 import com.eka.conversation.data.remote.models.responses.SessionStatusResponse
+import com.eka.conversation.data.remote.socket.SocketUtils
 import com.eka.conversation.data.remote.socket.WebSocketManager
+import com.eka.conversation.data.remote.socket.events.BaseSocketEvent
+import com.eka.conversation.data.remote.socket.events.SocketContentType
+import com.eka.conversation.data.remote.socket.events.SocketEventType
+import com.eka.conversation.data.remote.socket.events.receive.ConnectionEvent
+import com.eka.conversation.data.remote.socket.events.receive.EndOfStreamEvent
+import com.eka.conversation.data.remote.socket.events.receive.ErrorEvent
+import com.eka.conversation.data.remote.socket.events.receive.ReceiveChatEvent
+import com.eka.conversation.data.remote.socket.events.receive.StreamEvent
+import com.eka.conversation.data.remote.socket.events.send.SendChatData
+import com.eka.conversation.data.remote.socket.events.send.SendChatEvent
 import com.eka.conversation.data.remote.socket.states.SocketConnectionState
+import com.eka.conversation.data.remote.socket.states.SocketMessage
+import com.eka.conversation.domain.repositories.ChatRepository
 import com.eka.conversation.domain.repositories.SessionManagementRepository
 import com.haroldadmin.cnradapter.NetworkResponse
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -20,7 +36,8 @@ import kotlinx.coroutines.withContext
 class ChatSessionManager(
     private val chatPref: ChatSharedPreferences,
     private val authConfiguration: AuthConfiguration,
-    private val sessionManagementRepository: SessionManagementRepository
+    private val sessionManagementRepository: SessionManagementRepository,
+    private val chatRepository: ChatRepository
 ) {
     companion object {
         const val TAG = "ChatSessionManager"
@@ -30,22 +47,64 @@ class ChatSessionManager(
 
     private val _connectionState =
         MutableStateFlow<SocketConnectionState>(value = SocketConnectionState.Starting)
-    val connectionState = _connectionState.asStateFlow()
+
+    private var eventListenerJob: Job? = null
 
     private var socketManager: WebSocketManager? = null
 
     fun startExistingChatSession(userId: String) {
         coroutineScope.launch {
-//            val prevSessionId = chatPref.getString(ChatSharedPreferences.SESSION_ID)
-//            val prevSessionToken = chatPref.getString(ChatSharedPreferences.SESSION_TOKEN)
-//            if (!prevSessionId.isNullOrBlank() && !prevSessionToken.isNullOrBlank()) {
-//                checkSessionActive(sessionId = prevSessionId).onSuccess {
-//                    createSocketConnection(sessionId = prevSessionId, sessionToken = prevSessionToken)
-//                }.onFailure { exception ->
-//                    _connectionState.value = SocketConnectionState.Error(error = Exception(exception))
-//                }
-//                return@launch
-//            }
+            val prevSessionId = chatPref.getString(ChatSharedPreferences.SESSION_ID)
+            val prevSessionToken = chatPref.getString(ChatSharedPreferences.SESSION_TOKEN)
+            if (!prevSessionId.isNullOrBlank() && !prevSessionToken.isNullOrBlank()) {
+                checkSessionActive(sessionId = prevSessionId).onSuccess {
+                    refreshSessionToken(sessionId = prevSessionId).onSuccess {
+                        val newSessionToken = it.sessionToken
+                        if (newSessionToken.isNullOrBlank()) {
+                            _connectionState.value =
+                                SocketConnectionState.Error(error = Exception("Error creating new session!"))
+                            startNewSession(userId = userId)
+                            return@launch
+                        }
+                        chatPref.setString(ChatSharedPreferences.SESSION_TOKEN, newSessionToken)
+                        createSocketConnection(
+                            sessionId = prevSessionId,
+                            sessionToken = newSessionToken
+                        )
+                    }
+                        .onFailure {
+                            startNewSession(userId = userId)
+                        }
+                }.onFailure { exception ->
+                    _connectionState.value =
+                        SocketConnectionState.Error(error = Exception(exception))
+                    startNewSession(userId = userId)
+                }
+                return@launch
+            }
+        }
+    }
+
+    fun sendNewQuery(toolUseId: String?, query: String) {
+        val chatQuery = SendChatEvent(
+            timeStamp = Utils.getCurrentUTCEpochMillis(),
+            eventType = SocketEventType.CHAT,
+            eventId = Utils.getCurrentUTCEpochMillis().toString(),
+            data = SendChatData(
+                text = query,
+                toolUseId = toolUseId
+            ),
+            contentType = SocketContentType.TEXT
+        )
+        val stringQuery = SocketUtils.sendEvent(chatQuery)
+        if (stringQuery.isNullOrBlank()) {
+            return
+        }
+        socketManager?.sendText(stringQuery)
+    }
+
+    fun startNewSession(userId: String) {
+        coroutineScope.launch {
             createNewSession(userId = userId).onSuccess {
                 val newSessionId = it.sessionId
                 val newSessionToken = it.sessionToken
@@ -64,7 +123,54 @@ class ChatSessionManager(
         }
     }
 
-    fun listenConnectionState() = connectionState
+    fun listenSocketEvents() {
+        eventListenerJob?.cancel()
+        eventListenerJob = null
+        eventListenerJob = coroutineScope.launch {
+            socketManager?.listenEvents()?.collect {
+                handleSocketEvent(socketMessage = it)
+            }
+        }
+    }
+
+    fun handleSocketEvent(socketMessage: SocketMessage) {
+        when (socketMessage) {
+            is SocketMessage.TextMessage -> {
+                val socketEvent = SocketUtils.buildReceiveEvent(data = socketMessage.text)
+                storeSocketEventToDB(socketEvent)
+            }
+
+            is SocketMessage.ByteStringMessage -> {
+
+            }
+        }
+    }
+
+    private fun storeSocketEventToDB(socketEvent: BaseSocketEvent?) {
+        when (socketEvent) {
+            is ReceiveChatEvent -> {
+                ChatLogger.d(TAG, "ReceiveChatEvent $socketEvent")
+            }
+
+            is ConnectionEvent -> {
+                ChatLogger.d(TAG, "ConnectionEvent $socketEvent")
+            }
+
+            is EndOfStreamEvent -> {
+                ChatLogger.d(TAG, "EndOfStreamEvent $socketEvent")
+            }
+
+            is StreamEvent -> {
+                ChatLogger.d(TAG, "StreamEvent $socketEvent")
+            }
+
+            is ErrorEvent -> {
+                ChatLogger.d(TAG, "ErrorEvent $socketEvent")
+            }
+        }
+    }
+
+    fun listenConnectionState() = _connectionState.asStateFlow()
 
     suspend fun createNewSession(userId: String): Result<CreateSessionResponse> =
         withContext(Dispatchers.IO) {
@@ -88,6 +194,42 @@ class ChatSessionManager(
                                 response.body?.error?.msg ?: "User Not Found!"
                             )
                         )
+                    }
+
+                    else -> {
+                        ChatLogger.d(TAG, response.toString())
+                        return@withContext Result.failure(Exception("Something went wrong!"))
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                return@withContext Result.failure(e)
+            }
+        }
+
+    suspend fun refreshSessionToken(sessionId: String): Result<RefreshTokenResponse> =
+        withContext(Dispatchers.IO) {
+            try {
+                val response =
+                    sessionManagementRepository.refreshSessionToken(sessionId = sessionId)
+                when (response) {
+                    is NetworkResponse.Success -> {
+                        ChatLogger.d(TAG, response.body.toString())
+                        return@withContext Result.success(response.body)
+                    }
+
+                    is NetworkResponse.ServerError -> {
+                        ChatLogger.d(TAG, response.body.toString())
+                        return@withContext Result.failure(
+                            Exception(
+                                response.body?.error?.msg ?: "Session Not Found!"
+                            )
+                        )
+                    }
+
+                    is NetworkResponse.NetworkError -> {
+                        ChatLogger.d(TAG, response.error.toString())
+                        return@withContext Result.failure(Exception("Network Error!"))
                     }
 
                     else -> {
@@ -143,6 +285,7 @@ class ChatSessionManager(
             sessionToken = sessionToken,
             agentId = authConfiguration.agentId
         )
+        listenSocketEvents()
         ChatLogger.d(TAG, buildSocketUrl(sessionId = sessionId))
         coroutineScope.launch {
             socketManager?.listenConnectionState()?.collect {
@@ -153,6 +296,10 @@ class ChatSessionManager(
     }
 
     fun buildSocketUrl(sessionId: String): String {
-        return "wss://matrix-ws.dev.eka.care/ws/med-assist/session/${sessionId}"
+        return if (ChatInit.getChatInitConfiguration().environment == Environment.PROD) {
+            "wss://matrix-ws.eka.care/ws/med-assist/session/${sessionId}/"
+        } else {
+            "wss://matrix-ws.dev.eka.care/ws/med-assist/session/${sessionId}/"
+        }
     }
 }

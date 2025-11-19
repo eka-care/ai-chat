@@ -43,13 +43,18 @@ object ChatInit {
                 chatSessionManager = ChatSessionManager(
                     chatPref = chatSharedPreferences!!,
                     authConfiguration = chatInitConfiguration.authConfiguration,
-                    sessionManagementRepository = sessionRepository!!
+                    sessionManagementRepository = sessionRepository!!,
+                    chatRepository = repository!!
                 )
             }
         } catch (e: Exception) {
             Log.e("ChatSDK", "ChatSDK initialization failed", e)
         }
         Log.d("ChatSDK", "ChatSDK initialized")
+    }
+
+    fun sendNewQuery(toolUseId: String?, query: String) {
+        chatSessionManager?.sendNewQuery(toolUseId = toolUseId, query = query)
     }
 
     fun startChatSession(userId: String) {

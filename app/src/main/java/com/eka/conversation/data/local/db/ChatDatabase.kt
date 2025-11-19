@@ -9,6 +9,7 @@ import com.eka.conversation.common.Constants
 import com.eka.conversation.data.local.daos.MessageDao
 import com.eka.conversation.data.local.daos.MessageFileDao
 import com.eka.conversation.data.local.db.converters.Converters
+import com.eka.conversation.data.local.db.entities.ChatSession
 import com.eka.conversation.data.local.db.entities.MessageEntity
 import com.eka.conversation.data.local.db.entities.MessageFTSEntity
 import com.eka.conversation.data.local.db.entities.MessageFile
@@ -17,9 +18,10 @@ import com.eka.conversation.data.local.db.entities.MessageFile
     entities = [
         MessageEntity::class,
         MessageFile::class,
-        MessageFTSEntity::class
+        MessageFTSEntity::class,
+        ChatSession::class
     ],
-    version = 5,
+    version = 6,
     exportSchema = false
 )
 @TypeConverters(Converters::class)

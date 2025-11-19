@@ -2,7 +2,6 @@ package com.eka.conversation.data.repositories
 
 import android.util.Log
 import com.eka.conversation.common.Response
-import com.eka.conversation.common.Utils
 import com.eka.conversation.data.local.db.ChatDatabase
 import com.eka.conversation.data.local.db.entities.MessageEntity
 import com.eka.conversation.data.local.db.entities.MessageFile
@@ -285,7 +284,7 @@ class ChatRepositoryImpl(
                                     chatSessionConfig = messageEntity.chatSessionConfig,
                                     sessionIdentity = messageEntity.sessionIdentity,
                                     ownerId = messageEntity.ownerId,
-                                    msgId = msgId
+                                    msgId = msgId.toInt()
                                 )
                                 emit(it)
                             }
@@ -294,16 +293,16 @@ class ChatRepositoryImpl(
                 }
                 lastEventData?.let {
                     it.isLastEvent = true
-                    handleEventData(
-                        msgId = msgId,
-                        eventData = it,
-                        sessionId = messageEntity.sessionId,
-                        chatContext = messageEntity.chatContext,
-                        chatSubContext = messageEntity.chatSubContext,
-                        chatSessionConfig = messageEntity.chatSessionConfig,
-                        sessionIdentity = messageEntity.sessionIdentity,
-                        ownerId = messageEntity.ownerId
-                    )
+//                    handleEventData(
+//                        msgId = msgId,
+//                        eventData = it,
+//                        sessionId = messageEntity.sessionId,
+//                        chatContext = messageEntity.chatContext,
+//                        chatSubContext = messageEntity.chatSubContext,
+//                        chatSessionConfig = messageEntity.chatSessionConfig,
+//                        sessionIdentity = messageEntity.sessionIdentity,
+//                        ownerId = messageEntity.ownerId
+//                    )
                     emit(it)
                 }
             } else {
@@ -334,20 +333,20 @@ class ChatRepositoryImpl(
         Log.d("handleEventData", eventData.toString())
         insertMessages(
             messages = listOf(
-                MessageEntity(
-                    msgId = msgId,
-                    sessionId = sessionId,
-                    createdAt = Utils.getCurrentUTCEpochMillis(),
-                    messageFiles = null,
-                    messageText = eventData.text,
-                    htmlString = null,
-                    role = MessageRole.AI,
-                    chatContext = chatContext,
-                    chatSubContext = chatSubContext,
-                    chatSessionConfig = chatSessionConfig,
-                    sessionIdentity = sessionIdentity,
-                    ownerId = ownerId
-                )
+//                MessageEntity(
+//                    msgId = msgId,
+//                    sessionId = sessionId,
+//                    createdAt = Utils.getCurrentUTCEpochMillis(),
+//                    messageFiles = null,
+//                    messageText = eventData.text,
+//                    htmlString = null,
+//                    role = MessageRole.AI,
+//                    chatContext = chatContext,
+//                    chatSubContext = chatSubContext,
+//                    chatSessionConfig = chatSessionConfig,
+//                    sessionIdentity = sessionIdentity,
+//                    ownerId = ownerId
+//                )
             )
         )
     }
