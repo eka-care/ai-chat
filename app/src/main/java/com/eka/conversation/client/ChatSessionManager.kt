@@ -131,6 +131,9 @@ class ChatSessionManager(
             return false
         }
         val response = socketManager?.sendText(stringQuery) ?: false
+        if (response) {
+            storeSocketEventToDB(socketEvent = chatQuery)
+        }
         _sendEnabled.value = !response
         return response
     }
@@ -197,6 +200,11 @@ class ChatSessionManager(
                 ChatLogger.d(TAG, "ReceiveChatEvent $socketEvent")
             }
 
+            is SendChatEvent -> {
+                handleSendEvent(socketEvent)
+                ChatLogger.d(TAG, "SendChatEvent $socketEvent")
+            }
+
             is ConnectionEvent -> {
                 _connectionState.value = SocketConnectionState.Connected
                 ChatLogger.d(TAG, "ConnectionEvent $socketEvent")
@@ -217,6 +225,25 @@ class ChatSessionManager(
                 startExistingChatSession(sessionId = sessionId)
                 ChatLogger.d(TAG, "ErrorEvent $socketEvent")
             }
+        }
+    }
+
+    private fun handleSendEvent(socketEvent: SendChatEvent) {
+        coroutineScope.launch {
+            val sessionId = currentSessionId
+            if (sessionId.isNullOrBlank()) return@launch
+            chatRepository.insertMessages(
+                listOf(
+                    MessageEntity(
+                        msgType = MessageType.TEXT,
+                        msgId = socketEvent.eventId,
+                        sessionId = sessionId,
+                        role = MessageRole.USER,
+                        createdAt = Utils.getCurrentUTCEpochMillis(),
+                        msgContent = Gson().toJson(socketEvent)
+                    )
+                )
+            )
         }
     }
 

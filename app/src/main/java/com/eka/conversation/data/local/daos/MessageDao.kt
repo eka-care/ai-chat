@@ -33,11 +33,11 @@ interface MessageDao {
     fun getLastSessionId() : Flow<String>
 
     @Query("SELECT session_id FROM ${Constants.MESSAGES_TABLE_NAME} LIMIT 1")
-    suspend fun getSessionIdBySessionIdentity(sessionIdentity: String): String?
+    suspend fun getSessionIdBySessionIdentity(): String?
 
     @Query("""
         SELECT * FROM ${Constants.MESSAGES_TABLE_NAME} WHERE (msg_id,session_id) IN (
-            SELECT msg_id,session_id FROM ${Constants.MESSAGES_FTS_TABLE_NAME} WHERE message_text MATCH :query MATCH :query
+            SELECT msg_id,session_id FROM ${Constants.MESSAGES_FTS_TABLE_NAME} WHERE content MATCH :query MATCH :query
         )
     """)
     fun searchMessages(query: String): Flow<List<MessageEntity>>
@@ -45,7 +45,7 @@ interface MessageDao {
     @Query(
         """
         SELECT * FROM ${Constants.MESSAGES_TABLE_NAME} WHERE (msg_id,session_id) IN (
-            SELECT msg_id,session_id FROM ${Constants.MESSAGES_FTS_TABLE_NAME} WHERE message_text MATCH :query MATCH :query
+            SELECT msg_id,session_id FROM ${Constants.MESSAGES_FTS_TABLE_NAME} WHERE content MATCH :query MATCH :query
         ) AND owner_id = :ownerId
     """
     )
@@ -134,7 +134,7 @@ interface MessageDao {
     fun getMessageById(msgId: String, sessionId: String): MessageEntity?
 
     @Query("SELECT * FROM ${Constants.MESSAGES_TABLE_NAME}")
-    fun getMessagesByContext(context: String): List<MessageEntity>
+    fun getMessagesByContext(): List<MessageEntity>
 
     // Get messages by session id
     @Query("SELECT * FROM ${Constants.MESSAGES_TABLE_NAME} WHERE session_id = :sessionId ORDER BY created_at ASC")

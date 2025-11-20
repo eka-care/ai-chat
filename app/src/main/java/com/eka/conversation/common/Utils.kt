@@ -4,8 +4,6 @@ import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Build
-import com.eka.conversation.data.local.db.entities.MessageEntity
-import com.eka.conversation.data.local.db.entities.models.MessageContent
 import com.eka.conversation.data.local.db.entities.models.MessageFileType
 import java.util.Calendar
 import java.util.TimeZone
@@ -29,17 +27,6 @@ object Utils {
         val minutes = milliseconds / 1000 / 60
         val seconds = (milliseconds / 1000) % 60
         return String.format("%02d:%02d", minutes, seconds)
-    }
-
-    fun convertToMessageContent(messageEntity: MessageEntity): MessageContent {
-        return MessageContent(
-            role = messageEntity.role,
-            text = messageEntity.messageText,
-            messageFiles = null,
-            htmlString = messageEntity.htmlString,
-            chatContext = messageEntity.chatContext,
-            createdAt = messageEntity.createdAt
-        )
     }
 
     fun isNetworkAvailable(context: Context): Boolean {

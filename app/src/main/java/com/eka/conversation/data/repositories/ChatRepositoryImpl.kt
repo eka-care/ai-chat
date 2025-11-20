@@ -114,7 +114,7 @@ class ChatRepositoryImpl(
     override suspend fun getMessagesByContext(chatContext: String): Response<List<MessageEntity>> {
         return withContext(Dispatchers.IO) {
             try {
-                val res = chatDatabase.messageDao().getMessagesByContext(context = chatContext)
+                val res = chatDatabase.messageDao().getMessagesByContext()
                 Response.Success(data = res)
             } catch (e: Exception) {
                 Response.Error(message = e.message.toString())
@@ -167,7 +167,7 @@ class ChatRepositoryImpl(
         return withContext(Dispatchers.IO) {
             try {
                 val response = chatDatabase.messageDao()
-                    .getSessionIdBySessionIdentity(sessionIdentity = sessionIdentity)
+                    .getSessionIdBySessionIdentity()
                 Response.Success(data = response)
             } catch (e: Exception) {
                 Response.Error(message = e.message.toString())

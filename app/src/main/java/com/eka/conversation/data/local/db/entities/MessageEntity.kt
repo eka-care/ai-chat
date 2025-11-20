@@ -49,7 +49,7 @@ data class MessageEntity(
 data class MessageFTSEntity(
     @ColumnInfo(name = "msg_id") val msgId: String,
     @ColumnInfo(name = "session_id") val sessionId : String,
-    @ColumnInfo(name = "message_text") val messageText: String,
+    @ColumnInfo(name = "content") val msgContent: String,
 )
 
 
