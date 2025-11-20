@@ -30,10 +30,19 @@ data class ReceiveChatData(
     val choices: List<String>? = null,
     @SerializedName("additional_option")
     val additionalOption: String? = null,
-    @SerializedName("extension")
-    val extension: String? = null,
     @SerializedName("urls")
     val urls: List<String>? = null,
-    @SerializedName("url")
-    val url: String? = null,
 )
+
+//
+//@Keep
+//data class SendChatData(
+//    @SerializedName("text")
+//    val text: String? = null,
+//    @SerializedName("tool_use_id")
+//    val toolUseId: String? = null,
+//    @SerializedName("extension")
+//    val extension: String? = null,
+//    @SerializedName("url")
+//    val url: String? = null,
+//)

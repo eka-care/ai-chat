@@ -8,5 +8,8 @@ import com.haroldadmin.cnradapter.NetworkResponse
 interface SessionManagementRepository {
     suspend fun createNewSession(userId: String): NetworkResponse<CreateSessionResponse, CreateSessionResponse>
     suspend fun checkSessionStatus(sessionId: String): NetworkResponse<SessionStatusResponse, SessionStatusResponse>
-    suspend fun refreshSessionToken(sessionId: String): NetworkResponse<RefreshTokenResponse, RefreshTokenResponse>
+    suspend fun refreshSessionToken(
+        sessionId: String,
+        prevSessToken: String
+    ): NetworkResponse<RefreshTokenResponse, RefreshTokenResponse>
 }

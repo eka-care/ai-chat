@@ -150,7 +150,9 @@ class WebSocketManagerTest {
 
         assertTrue("Should have states", states.isNotEmpty())
         assertTrue("Should have Connecting", states.any { it is SocketConnectionState.Connecting })
-        assertTrue("Should have Connected", states.any { it is SocketConnectionState.Connected })
+        assertTrue(
+            "Should have Connected",
+            states.any { it is SocketConnectionState.SocketConnected })
         assertTrue("Should have disconnected state", hasDisconnectedState)
     }
 

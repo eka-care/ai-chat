@@ -53,9 +53,11 @@ object ChatInit {
         Log.d("ChatSDK", "ChatSDK initialized")
     }
 
-    fun sendNewQuery(toolUseId: String?, query: String) {
-        chatSessionManager?.sendNewQuery(toolUseId = toolUseId, query = query)
+    fun sendNewQuery(toolUseId: String?, query: String): Boolean {
+        return chatSessionManager?.sendNewQuery(toolUseId = toolUseId, query = query) ?: false
     }
+
+    fun sendEnabled() = chatSessionManager?.sendEnabled()
 
     fun startChatSession(userId: String) {
         chatSessionManager?.startExistingChatSession(userId = userId)

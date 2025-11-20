@@ -73,7 +73,7 @@ class WebSocketManager(
     private val listener = object : WebSocketListener() {
         override fun onOpen(webSocket: WebSocket, response: Response) {
             ChatLogger.d(TAG, response.isSuccessful.toString())
-            _connectionState.value = SocketConnectionState.Connected
+            _connectionState.value = SocketConnectionState.SocketConnected
             sendAuthToken()
         }
 
@@ -146,7 +146,7 @@ class WebSocketManager(
     }
 
     fun connect() {
-        if (_connectionState.value is SocketConnectionState.Connected || _connectionState.value is SocketConnectionState.Connecting) {
+        if (_connectionState.value is SocketConnectionState.SocketConnected || _connectionState.value is SocketConnectionState.Connecting) {
             ChatLogger.w(TAG, "Already connected or connecting")
             return
         }

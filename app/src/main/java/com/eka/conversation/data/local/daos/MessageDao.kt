@@ -130,7 +130,7 @@ interface MessageDao {
 
     // Get a message by its local ID
     @Query("SELECT * FROM ${Constants.MESSAGES_TABLE_NAME} WHERE msg_id = :msgId AND session_id = :sessionId")
-    fun getMessageById(msgId : Int, sessionId: String): Flow<MessageEntity>
+    fun getMessageById(msgId: String, sessionId: String): MessageEntity?
 
     @Query("SELECT * FROM ${Constants.MESSAGES_TABLE_NAME} WHERE chat_context = :context")
     fun getMessagesByContext(context: String): List<MessageEntity>

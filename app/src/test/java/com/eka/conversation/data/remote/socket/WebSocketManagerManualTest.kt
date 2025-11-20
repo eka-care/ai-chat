@@ -83,7 +83,7 @@ class WebSocketManagerManualTest {
                         println("✓ State: Connecting...")
                     }
 
-                    is SocketConnectionState.Connected -> {
+                    is SocketConnectionState.SocketConnected -> {
                         println("✓ State: Connected successfully!")
                     }
 
@@ -138,7 +138,7 @@ class WebSocketManagerManualTest {
 
         val stateJob = scope.launch {
             manager.listenConnectionState().collect { state ->
-                if (state is SocketConnectionState.Connected) {
+                if (state is SocketConnectionState.SocketConnected) {
                     println("✓ Connected, sending test message...")
 
                     val textSent = manager.sendText("Hello WebSocket!")
@@ -239,7 +239,7 @@ class WebSocketManagerManualTest {
                         println("✓ Disconnected state detected")
                     }
 
-                    is SocketConnectionState.Connected -> {
+                    is SocketConnectionState.SocketConnected -> {
                         println("✓ Connected, now disconnecting...")
                         delay(500)
                         manager.disconnect()
@@ -293,7 +293,7 @@ class WebSocketManagerManualTest {
 
         val stateJob = scope.launch {
             manager.listenConnectionState().collect { state ->
-                if (state is SocketConnectionState.Connected) {
+                if (state is SocketConnectionState.SocketConnected) {
                     println("✓ Connected, sending $messagesToSend messages...")
 
                     repeat(messagesToSend) { i ->

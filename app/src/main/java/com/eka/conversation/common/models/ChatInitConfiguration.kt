@@ -6,7 +6,7 @@ import com.eka.networking.client.NetworkConfig
 
 @Keep
 data class ChatInitConfiguration(
-    val audioFeatureConfiguration: AudioFeatureConfiguration = AudioFeatureConfiguration(),
+    val speechToTextConfiguration: SpeechToTextConfiguration,
     val networkConfig: NetworkConfig,
     val environment: Environment = Environment.PROD,
     val authConfiguration: AuthConfiguration

@@ -61,13 +61,17 @@ class SessionManagementRepositoryImpl(
             }
         }
 
-    override suspend fun refreshSessionToken(sessionId: String): NetworkResponse<RefreshTokenResponse, RefreshTokenResponse> =
+    override suspend fun refreshSessionToken(
+        sessionId: String,
+        prevSessToken: String
+    ): NetworkResponse<RefreshTokenResponse, RefreshTokenResponse> =
         withContext(Dispatchers.IO) {
             try {
-                val headers = HashMap<String, Any>()
-                headers.put("x-agent-id", authConfiguration.agentId)
+                val headers = baseHeaders.apply {
+                    put("x-sess-token", prevSessToken)
+                }
                 val response = matrixService.refreshSessionToken(
-                    headerMap = baseHeaders,
+                    headerMap = headers,
                     sessionId = sessionId
                 )
                 response
