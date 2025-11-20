@@ -67,6 +67,8 @@ object ChatInit {
 
     fun sendEnabled() = chatSessionManager?.sendEnabled()
 
+    fun getResponseStream() = chatSessionManager?.responseStream()
+
     fun startExistingChatSession(sessionId: String) {
         chatSessionManager?.startExistingChatSession(sessionId = sessionId)
     }

@@ -8,19 +8,21 @@ sealed class Message {
         val sessionId: String,
         val text: String,
         val role: MessageRole,
-        val updatedAt: String
+        val updatedAt: Long
     ) : Message()
 
     data class MultiSelect(
         val msgId: String,
         val sessionId: String,
         val choices: List<String>,
-        val toolUseId: String
+        val toolUseId: String,
+        val updatedAt: Long
     ) : Message()
 
     data class SingleSelect(
         val msgId: String,
         val sessionId: String,
         val toolUseId: String,
+        val updatedAt: Long
     )
 }

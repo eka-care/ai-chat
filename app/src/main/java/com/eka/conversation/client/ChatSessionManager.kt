@@ -20,6 +20,7 @@ import com.eka.conversation.data.remote.socket.events.receive.EndOfStreamEvent
 import com.eka.conversation.data.remote.socket.events.receive.ErrorEvent
 import com.eka.conversation.data.remote.socket.events.receive.ReceiveChatEvent
 import com.eka.conversation.data.remote.socket.events.receive.StreamEvent
+import com.eka.conversation.data.remote.socket.events.receive.toMessageModel
 import com.eka.conversation.data.remote.socket.events.send.SendChatData
 import com.eka.conversation.data.remote.socket.events.send.SendChatEvent
 import com.eka.conversation.data.remote.socket.states.SocketConnectionState
@@ -34,6 +35,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -109,6 +111,9 @@ class ChatSessionManager(
     }
 
     fun sendEnabled() = _sendEnabled.asStateFlow()
+
+    fun responseStream() =
+        _responseStream.asStateFlow().map { it?.toMessageModel(sessionId = currentSessionId ?: "") }
 
     fun sendNewQuery(toolUseId: String?, query: String): Boolean {
         val chatQuery = SendChatEvent(
