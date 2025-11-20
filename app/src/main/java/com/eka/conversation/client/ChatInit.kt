@@ -2,6 +2,7 @@ package com.eka.conversation.client
 
 import android.content.Context
 import android.util.Log
+import com.eka.conversation.client.models.Message
 import com.eka.conversation.common.Response
 import com.eka.conversation.common.models.ChatInitConfiguration
 import com.eka.conversation.data.local.db.ChatDatabase
@@ -85,7 +86,7 @@ object ChatInit {
 
     fun listenConnectionState() = chatSessionManager?.listenConnectionState()
 
-    fun getMessagesBySessionId(sessionId: String): Response<Flow<List<MessageEntity>>>? {
+    fun getMessagesBySessionId(sessionId: String): Response<Flow<List<Message>>>? {
         return repository?.getMessagesBySessionId(sessionId)
     }
 

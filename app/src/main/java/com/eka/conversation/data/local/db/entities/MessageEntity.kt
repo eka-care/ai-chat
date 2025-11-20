@@ -6,9 +6,15 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Fts4
 import androidx.room.PrimaryKey
+import com.eka.conversation.client.models.Message
 import com.eka.conversation.common.Constants
 import com.eka.conversation.data.local.db.entities.models.MessageRole
 import com.eka.conversation.data.local.db.entities.models.MessageType
+import com.eka.conversation.data.remote.socket.SocketUtils
+import com.eka.conversation.data.remote.socket.events.receive.ReceiveChatEvent
+import com.eka.conversation.data.remote.socket.events.receive.StreamEvent
+import com.eka.conversation.data.remote.socket.events.send.SendChatEvent
+import com.google.gson.Gson
 
 @Keep
 @Entity(
@@ -52,4 +58,67 @@ data class MessageFTSEntity(
     @ColumnInfo(name = "content") val msgContent: String,
 )
 
+fun MessageEntity.toMessageModel(): Message? {
+    return if (role == MessageRole.AI) {
+        val socketEvent = SocketUtils.buildReceiveEvent(data = msgContent)
+        when (socketEvent) {
+            is ReceiveChatEvent -> {
+                when (msgType) {
+                    MessageType.SINGLE_SELECT -> {
+                        Message.SingleSelect(
+                            msgId = msgId,
+                            sessionId = sessionId,
+                            updatedAt = createdAt,
+                            toolUseId = socketEvent.data?.toolUseId ?: "",
+                            choices = socketEvent.data?.choices ?: emptyList()
+                        )
+                    }
+
+                    MessageType.MULTI_SELECT -> {
+                        Message.MultiSelect(
+                            msgId = msgId,
+                            sessionId = sessionId,
+                            updatedAt = createdAt,
+                            toolUseId = socketEvent.data?.toolUseId ?: "",
+                            choices = socketEvent.data?.choices ?: emptyList()
+                        )
+                    }
+
+                    MessageType.TEXT -> {
+                        Message.Text(
+                            msgId = msgId,
+                            sessionId = sessionId,
+                            role = role,
+                            updatedAt = createdAt,
+                            text = socketEvent.data?.text ?: ""
+                        )
+                    }
+                }
+            }
+
+            is StreamEvent -> {
+                Message.Text(
+                    msgId = msgId,
+                    sessionId = sessionId,
+                    role = role,
+                    updatedAt = createdAt,
+                    text = socketEvent.data.text ?: ""
+                )
+            }
+
+            else -> {
+                null
+            }
+        }
+    } else {
+        val event = Gson().fromJson(msgContent, SendChatEvent::class.java)
+        return Message.Text(
+            msgId = msgId,
+            sessionId = sessionId,
+            role = role,
+            updatedAt = createdAt,
+            text = event.data.text ?: ""
+        )
+    }
+}
 

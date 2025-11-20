@@ -1,14 +1,17 @@
 package com.eka.conversation.data.repositories
 
+import com.eka.conversation.client.models.Message
 import com.eka.conversation.common.Response
 import com.eka.conversation.data.local.db.ChatDatabase
 import com.eka.conversation.data.local.db.entities.ChatSession
 import com.eka.conversation.data.local.db.entities.MessageEntity
 import com.eka.conversation.data.local.db.entities.MessageFile
+import com.eka.conversation.data.local.db.entities.toMessageModel
 import com.eka.conversation.domain.repositories.ChatRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 
 class ChatRepositoryImpl(
@@ -69,9 +72,10 @@ class ChatRepositoryImpl(
         }
     }
 
-    override fun getMessagesBySessionId(sessionId: String): Response<Flow<List<MessageEntity>>> {
+    override fun getMessagesBySessionId(sessionId: String): Response<Flow<List<Message>>> {
         return try {
             val response = chatDatabase.messageDao().getMessagesBySessionId(sessionId = sessionId)
+                .map { messageList -> messageList.mapNotNull { message -> message.toMessageModel() } }
             Response.Success(data = response)
         } catch (e : Exception) {
             Response.Error(message = e.message.toString())

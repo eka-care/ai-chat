@@ -1,5 +1,6 @@
 package com.eka.conversation.domain.repositories
 
+import com.eka.conversation.client.models.Message
 import com.eka.conversation.common.Response
 import com.eka.conversation.data.local.db.entities.ChatSession
 import com.eka.conversation.data.local.db.entities.MessageEntity
@@ -13,7 +14,7 @@ interface ChatRepository {
     suspend fun getLastSessionId() : Flow<String>
     fun getSearchResult(query : String) : Flow<List<MessageEntity>>
     fun getSearchResultWithOwnerId(query: String, ownerId: String): Flow<List<MessageEntity>>
-    fun getMessagesBySessionId(sessionId : String) : Response<Flow<List<MessageEntity>>>
+    fun getMessagesBySessionId(sessionId: String): Response<Flow<List<Message>>>
     suspend fun getMessageById(msgId: String, sessionId: String): MessageEntity?
     suspend fun getLastMessagesOfEachSessionId() : Response<List<MessageEntity>>
 

@@ -23,6 +23,7 @@ sealed class Message {
         val msgId: String,
         val sessionId: String,
         val toolUseId: String,
-        val updatedAt: Long
-    )
+        val updatedAt: Long,
+        val choices: List<String>
+    ) : Message()
 }
