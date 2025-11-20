@@ -3,10 +3,10 @@ package com.eka.conversation.client
 import com.eka.conversation.common.ChatLogger
 import com.eka.conversation.common.Utils
 import com.eka.conversation.common.models.AuthConfiguration
+import com.eka.conversation.data.local.db.entities.ChatSession
 import com.eka.conversation.data.local.db.entities.MessageEntity
 import com.eka.conversation.data.local.db.entities.models.MessageRole
 import com.eka.conversation.data.local.db.entities.models.MessageType
-import com.eka.conversation.data.local.preferences.ChatSharedPreferences
 import com.eka.conversation.data.remote.models.responses.CreateSessionResponse
 import com.eka.conversation.data.remote.models.responses.RefreshTokenResponse
 import com.eka.conversation.data.remote.models.responses.SessionStatusResponse
@@ -38,7 +38,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class ChatSessionManager(
-    private val chatPref: ChatSharedPreferences,
     private val authConfiguration: AuthConfiguration,
     private val sessionManagementRepository: SessionManagementRepository,
     private val chatRepository: ChatRepository
@@ -59,13 +58,20 @@ class ChatSessionManager(
     private var eventListenerJob: Job? = null
 
     private var socketManager: WebSocketManager? = null
+    var currentSessionId: String? = null
 
-    fun startExistingChatSession(userId: String) {
+    fun startExistingChatSession(sessionId: String) {
         coroutineScope.launch {
-            val prevSessionId = chatPref.getString(ChatSharedPreferences.SESSION_ID)
-            val prevSessionToken = chatPref.getString(ChatSharedPreferences.SESSION_TOKEN)
-            if (prevSessionId.isNullOrBlank() || prevSessionToken.isNullOrBlank()) {
-                startNewSession(userId = userId)
+            val chatSession = chatRepository.getSessionData(sessionId = sessionId).getOrNull()
+            if (chatSession == null) {
+                startNewSession()
+                return@launch
+            }
+
+            val prevSessionId = chatSession.sessionId
+            val prevSessionToken = chatSession.sessionToken
+            if (prevSessionId.isBlank() || prevSessionToken.isBlank()) {
+                startNewSession()
                 return@launch
             }
             checkSessionActive(sessionId = prevSessionId).onSuccess {
@@ -77,21 +83,26 @@ class ChatSessionManager(
                     if (newSessionToken.isNullOrBlank()) {
                         _connectionState.value =
                             SocketConnectionState.Error(error = Exception("Error creating new session!"))
-                        startNewSession(userId = userId)
+                        startNewSession()
                         return@launch
                     }
-                    chatPref.setString(ChatSharedPreferences.SESSION_TOKEN, newSessionToken)
+                    chatRepository.insertChatSession(
+                        session = chatSession.copy(
+                            sessionToken = newSessionToken,
+                            updatedAt = Utils.getCurrentUTCEpochMillis()
+                        )
+                    )
                     createSocketConnection(
                         sessionId = prevSessionId,
                         sessionToken = newSessionToken
                     )
                 }.onFailure {
-                    startNewSession(userId = userId)
+                    startNewSession()
                 }
             }.onFailure { exception ->
                 _connectionState.value =
                     SocketConnectionState.Error(error = Exception(exception))
-                startNewSession(userId = userId)
+                startNewSession()
             }
             return@launch
         }
@@ -119,9 +130,9 @@ class ChatSessionManager(
         return response
     }
 
-    fun startNewSession(userId: String) {
+    fun startNewSession() {
         coroutineScope.launch {
-            createNewSession(userId = userId).onSuccess {
+            createNewSession(userId = authConfiguration.userId).onSuccess {
                 val newSessionId = it.sessionId
                 val newSessionToken = it.sessionToken
                 if (newSessionId.isNullOrBlank() || newSessionToken.isNullOrBlank()) {
@@ -129,8 +140,16 @@ class ChatSessionManager(
                         SocketConnectionState.Error(error = Exception("Error creating new session!"))
                     return@launch
                 }
-                chatPref.setString(ChatSharedPreferences.SESSION_ID, newSessionId)
-                chatPref.setString(ChatSharedPreferences.SESSION_TOKEN, newSessionToken)
+                chatRepository.insertChatSession(
+                    ChatSession(
+                        sessionId = newSessionId,
+                        sessionToken = newSessionToken,
+                        createdAt = Utils.getCurrentUTCEpochMillis(),
+                        updatedAt = Utils.getCurrentUTCEpochMillis(),
+                        ownerId = authConfiguration.userId,
+                        businessId = authConfiguration.businessId
+                    )
+                )
                 createSocketConnection(sessionId = newSessionId, sessionToken = newSessionToken)
             }.onFailure {
                 _connectionState.value = SocketConnectionState.Error(error = Exception(it))
@@ -163,7 +182,7 @@ class ChatSessionManager(
     }
 
     private fun storeSocketEventToDB(socketEvent: BaseSocketEvent?) {
-        val sessionId = chatPref.getString(ChatSharedPreferences.SESSION_ID)
+        val sessionId = currentSessionId
         if (sessionId == null) {
             return
         }
@@ -179,28 +198,44 @@ class ChatSessionManager(
             }
 
             is EndOfStreamEvent -> {
-                val lastMessage = _responseStream.value
-                lastMessage?.let {
-                    handleStreamEvent(sessionId = sessionId, event = lastMessage)
-                    _responseStream.value = null
-                }
-                _sendEnabled.value = true
+                handleEndOfStreamEvent(sessionId = sessionId)
                 ChatLogger.d(TAG, "EndOfStreamEvent $socketEvent")
             }
 
             is StreamEvent -> {
-                if (socketEvent.data.text.isNullOrBlank()) {
-                    return
-                }
-                _responseStream.value = socketEvent
+                handleStreamResponse(socketEvent = socketEvent)
                 ChatLogger.d(TAG, "StreamEvent $socketEvent")
             }
 
             is ErrorEvent -> {
-                // TODO Retry session 3 times with new refresh token and then start new session
+                handleEndOfStreamEvent(sessionId = sessionId)
+                startExistingChatSession(sessionId = sessionId)
                 ChatLogger.d(TAG, "ErrorEvent $socketEvent")
             }
         }
+    }
+
+    private fun handleEndOfStreamEvent(sessionId: String) {
+        val lastMessage = _responseStream.value
+        lastMessage?.let {
+            handleStreamEvent(sessionId = sessionId, event = lastMessage)
+            _responseStream.value = null
+        }
+        _sendEnabled.value = true
+    }
+
+    private fun handleStreamResponse(
+        socketEvent: StreamEvent
+    ) {
+        if (socketEvent.data.text.isNullOrBlank()) {
+            return
+        }
+        val newResponseText = _responseStream.value?.data?.text ?: ""
+        _responseStream.value = socketEvent.copy(
+            data = socketEvent.data.copy(
+                text = newResponseText + socketEvent.data.text
+            )
+        )
     }
 
     fun handleReceiveChatEvent(sessionId: String, receivedChatEvent: ReceiveChatEvent) {
@@ -404,6 +439,7 @@ class ChatSessionManager(
                 _connectionState.value = it
             }
         }
+        currentSessionId = sessionId
         socketManager?.connect()
     }
 

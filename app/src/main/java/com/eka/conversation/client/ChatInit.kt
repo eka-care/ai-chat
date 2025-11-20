@@ -6,22 +6,22 @@ import com.eka.conversation.common.Response
 import com.eka.conversation.common.models.ChatInitConfiguration
 import com.eka.conversation.data.local.db.ChatDatabase
 import com.eka.conversation.data.local.db.entities.MessageEntity
-import com.eka.conversation.data.local.preferences.ChatSharedPreferences
-import com.eka.conversation.data.remote.models.QueryResponseEvent
 import com.eka.conversation.data.repositories.ChatRepositoryImpl
 import com.eka.conversation.data.repositories.SessionManagementRepositoryImpl
 import com.eka.conversation.domain.repositories.ChatRepository
 import com.eka.conversation.domain.repositories.SessionManagementRepository
 import com.eka.conversation.features.audio.AndroidAudioRecorder
 import com.eka.networking.client.EkaNetwork
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.launch
 
 object ChatInit {
     private var configuration: ChatInitConfiguration? = null
     private var database: ChatDatabase? = null
     private var repository: ChatRepository? = null
     private var sessionRepository: SessionManagementRepository? = null
-    private var chatSharedPreferences: ChatSharedPreferences? = null
     private var chatSessionManager: ChatSessionManager? = null
 
     fun initialize(
@@ -29,6 +29,16 @@ object ChatInit {
         context: Context
     ) {
         configuration = chatInitConfiguration
+        val auth = chatInitConfiguration.authConfiguration
+        require(auth.agentId.isNotBlank()) {
+            throw IllegalStateException("Invalid auth configuration agentId is blank!")
+        }
+        require(auth.userId.isNotBlank()) {
+            throw IllegalStateException("Invalid auth configuration userId is blank!")
+        }
+        require(auth.businessId.isNotBlank()) {
+            throw IllegalStateException("Invalid auth configuration businessId is blank!")
+        }
         try {
             EkaNetwork.init(
                 networkConfig = chatInitConfiguration.networkConfig
@@ -36,12 +46,10 @@ object ChatInit {
             database = ChatDatabase.getDatabase(context = context)
             database?.let {
                 repository = ChatRepositoryImpl(it)
-                chatSharedPreferences = ChatSharedPreferences(context = context.applicationContext)
                 sessionRepository = SessionManagementRepositoryImpl(
                     authConfiguration = chatInitConfiguration.authConfiguration
                 )
                 chatSessionManager = ChatSessionManager(
-                    chatPref = chatSharedPreferences!!,
                     authConfiguration = chatInitConfiguration.authConfiguration,
                     sessionManagementRepository = sessionRepository!!,
                     chatRepository = repository!!
@@ -59,8 +67,18 @@ object ChatInit {
 
     fun sendEnabled() = chatSessionManager?.sendEnabled()
 
-    fun startChatSession(userId: String) {
-        chatSessionManager?.startExistingChatSession(userId = userId)
+    fun startExistingChatSession(sessionId: String) {
+        chatSessionManager?.startExistingChatSession(sessionId = sessionId)
+    }
+
+    fun startChatSession() {
+        CoroutineScope(Dispatchers.IO).launch {
+            repository?.getLastSession()?.onSuccess {
+                chatSessionManager?.startExistingChatSession(sessionId = it.sessionId)
+            }?.onFailure {
+                chatSessionManager?.startNewSession()
+            }
+        }
     }
 
     fun listenConnectionState() = chatSessionManager?.listenConnectionState()
@@ -87,17 +105,6 @@ object ChatInit {
 
     suspend fun getAllSessionByChatContext(chatContext: String): Response<List<MessageEntity>>? {
         return repository?.getMessagesByContext(chatContext = chatContext)
-    }
-
-    suspend fun askNewQuery(
-        messageEntity: MessageEntity
-    ): Flow<QueryResponseEvent>? {
-        repository?.insertMessages(listOf(messageEntity))
-        Log.d("askNewQuery", messageEntity.toString())
-        val response = repository?.askNewQuery(
-            messageEntity = messageEntity
-        )
-        return response
     }
 
     suspend fun insertMessages(messages: List<MessageEntity>) {

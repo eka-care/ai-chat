@@ -1,10 +1,9 @@
 package com.eka.conversation.domain.repositories
 
 import com.eka.conversation.common.Response
+import com.eka.conversation.data.local.db.entities.ChatSession
 import com.eka.conversation.data.local.db.entities.MessageEntity
 import com.eka.conversation.data.local.db.entities.MessageFile
-import com.eka.conversation.data.remote.models.QueryPostRequest
-import com.eka.conversation.data.remote.models.QueryResponseEvent
 import kotlinx.coroutines.flow.Flow
 
 interface ChatRepository {
@@ -31,10 +30,8 @@ interface ChatRepository {
     suspend fun getFileById(fileId : Int) : Response<MessageFile>
     suspend fun getSessionIdBySessionIdentity(sessionIdentity: String): Response<String?>
 
-    //remote
-    suspend fun queryPost(queryPostRequest: QueryPostRequest): Flow<QueryResponseEvent>
+    suspend fun getSessionData(sessionId: String): Result<ChatSession>
+    suspend fun getLastSession(): Result<ChatSession>
 
-    suspend fun askNewQuery(
-        messageEntity: MessageEntity
-    ): Flow<QueryResponseEvent>
+    suspend fun insertChatSession(session: ChatSession): Result<Boolean>
 }
