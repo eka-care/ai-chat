@@ -6,6 +6,7 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
 import androidx.room.Update
+import androidx.room.Upsert
 import com.eka.conversation.common.Constants
 import com.eka.conversation.data.local.db.entities.ChatSession
 import com.eka.conversation.data.local.db.entities.MessageEntity
@@ -149,6 +150,6 @@ interface MessageDao {
     @Query("SELECT * FROM ${Constants.CHAT_SESSION} ORDER BY updated_at DESC LIMIT 1 ")
     fun getLastSessionData(): ChatSession?
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Upsert
     fun insertChatSession(chatSession: ChatSession)
 }
