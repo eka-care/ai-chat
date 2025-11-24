@@ -84,6 +84,8 @@ object ChatInit {
         }
     }
 
+    fun getCurrentSessionId() = chatSessionManager?.getCurrentSessionId()
+
     fun listenConnectionState() = chatSessionManager?.listenConnectionState()
 
     fun getMessagesBySessionId(sessionId: String): Response<Flow<List<Message>>>? {

@@ -30,8 +30,8 @@ data class StreamData(
 
 fun StreamEvent.toMessageModel(sessionId: String): Message {
     return Message.Text(
-        msgId = eventId,
-        sessionId = sessionId,
+        messageId = eventId,
+        chatId = sessionId,
         text = data.text ?: "",
         updatedAt = timeStamp ?: 0L,
         role = MessageRole.AI

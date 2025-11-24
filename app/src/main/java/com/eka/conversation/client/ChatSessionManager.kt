@@ -60,7 +60,7 @@ class ChatSessionManager(
     private var eventListenerJob: Job? = null
 
     private var socketManager: WebSocketManager? = null
-    var currentSessionId: String? = null
+    private var currentSessionId: String? = null
 
     fun startExistingChatSession(sessionId: String) {
         coroutineScope.launch {
@@ -111,6 +111,11 @@ class ChatSessionManager(
     }
 
     fun sendEnabled() = _sendEnabled.asStateFlow()
+
+    fun getCurrentSessionId(): Result<String> {
+        return currentSessionId?.let { Result.success(it) }
+            ?: Result.failure(Exception("No session found!"))
+    }
 
     fun responseStream() =
         _responseStream.asStateFlow().map { it?.toMessageModel(sessionId = currentSessionId ?: "") }

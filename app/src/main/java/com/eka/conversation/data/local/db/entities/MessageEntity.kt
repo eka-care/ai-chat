@@ -66,8 +66,8 @@ fun MessageEntity.toMessageModel(): Message? {
                 when (msgType) {
                     MessageType.SINGLE_SELECT -> {
                         Message.SingleSelect(
-                            msgId = msgId,
-                            sessionId = sessionId,
+                            messageId = msgId,
+                            chatId = sessionId,
                             updatedAt = createdAt,
                             toolUseId = socketEvent.data?.toolUseId ?: "",
                             choices = socketEvent.data?.choices ?: emptyList()
@@ -76,8 +76,8 @@ fun MessageEntity.toMessageModel(): Message? {
 
                     MessageType.MULTI_SELECT -> {
                         Message.MultiSelect(
-                            msgId = msgId,
-                            sessionId = sessionId,
+                            messageId = msgId,
+                            chatId = sessionId,
                             updatedAt = createdAt,
                             toolUseId = socketEvent.data?.toolUseId ?: "",
                             choices = socketEvent.data?.choices ?: emptyList()
@@ -86,8 +86,8 @@ fun MessageEntity.toMessageModel(): Message? {
 
                     MessageType.TEXT -> {
                         Message.Text(
-                            msgId = msgId,
-                            sessionId = sessionId,
+                            messageId = msgId,
+                            chatId = sessionId,
                             role = role,
                             updatedAt = createdAt,
                             text = socketEvent.data?.text ?: ""
@@ -98,8 +98,8 @@ fun MessageEntity.toMessageModel(): Message? {
 
             is StreamEvent -> {
                 Message.Text(
-                    msgId = msgId,
-                    sessionId = sessionId,
+                    messageId = msgId,
+                    chatId = sessionId,
                     role = role,
                     updatedAt = createdAt,
                     text = socketEvent.data.text ?: ""
@@ -113,8 +113,8 @@ fun MessageEntity.toMessageModel(): Message? {
     } else {
         val event = Gson().fromJson(msgContent, SendChatEvent::class.java)
         return Message.Text(
-            msgId = msgId,
-            sessionId = sessionId,
+            messageId = msgId,
+            chatId = sessionId,
             role = role,
             updatedAt = createdAt,
             text = event.data.text ?: ""
