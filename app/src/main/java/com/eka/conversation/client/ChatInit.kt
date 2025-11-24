@@ -2,16 +2,17 @@ package com.eka.conversation.client
 
 import android.content.Context
 import android.util.Log
+import com.eka.conversation.client.interfaces.IChatSessionConfig
+import com.eka.conversation.client.interfaces.IResponseStreamHandler
 import com.eka.conversation.client.models.Message
 import com.eka.conversation.common.Response
 import com.eka.conversation.common.models.ChatInitConfiguration
 import com.eka.conversation.data.local.db.ChatDatabase
-import com.eka.conversation.data.local.db.entities.MessageEntity
 import com.eka.conversation.data.repositories.ChatRepositoryImpl
 import com.eka.conversation.data.repositories.SessionManagementRepositoryImpl
 import com.eka.conversation.domain.repositories.ChatRepository
 import com.eka.conversation.domain.repositories.SessionManagementRepository
-import com.eka.conversation.features.audio.AndroidAudioRecorder
+import com.eka.conversation.internal.ChatSessionManager
 import com.eka.networking.client.EkaNetwork
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -62,24 +63,32 @@ object ChatInit {
         Log.d("ChatSDK", "ChatSDK initialized")
     }
 
-    fun startChatSession() {
+    fun startSession(sessionId: String, chatSessionConfig: IChatSessionConfig) {
         CoroutineScope(Dispatchers.IO).launch {
-            repository?.getLastSession()?.onSuccess {
-                chatSessionManager?.startExistingChatSession(sessionId = it.sessionId)
-            }?.onFailure {
-                chatSessionManager?.startNewSession()
+            val session = repository?.getSessionData(sessionId = sessionId)?.getOrNull()
+            if (session == null) {
+                chatSessionConfig.onFailure(Exception("Session not found!"))
+                return@launch
             }
+            chatSessionManager?.startSession(
+                sessionId = sessionId,
+                chatSessionConfig = chatSessionConfig
+            )
         }
     }
 
-    fun sendNewQuery(toolUseId: String?, query: String): Boolean {
-        return chatSessionManager?.sendNewQuery(toolUseId = toolUseId, query = query) ?: false
+    fun startSession(chatSessionConfig: IChatSessionConfig) {
+        CoroutineScope(Dispatchers.IO).launch {
+            chatSessionManager?.startSession(chatSessionConfig = chatSessionConfig)
+        }
     }
 
-    fun sendEnabled() = chatSessionManager?.sendEnabled()
-
-    fun startExistingChatSession(sessionId: String) {
-        chatSessionManager?.startExistingChatSession(sessionId = sessionId)
+    fun sendNewQuery(toolUseId: String?, query: String, responseHandler: IResponseStreamHandler) {
+        chatSessionManager?.sendNewQuery(
+            toolUseId = toolUseId,
+            query = query,
+            responseHandler = responseHandler
+        )
     }
 
     fun getMessagesBySessionId(sessionId: String): Response<Flow<List<Message>>>? {

@@ -1,4 +1,4 @@
-package com.eka.conversation.client
+package com.eka.conversation.client.models
 
 import androidx.annotation.Keep
 

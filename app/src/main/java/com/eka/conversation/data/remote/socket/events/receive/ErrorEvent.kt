@@ -17,10 +17,6 @@ data class ErrorEvent(
     val message: String? = null,
 ) : BaseSocketEvent(timeStamp = timeStamp, eventType = eventType)
 
-@Keep
-data class ErrorData(
-    @SerializedName("code")
-    val code: Int,
-    @SerializedName("msg")
-    val message: String
-)
+enum class ErrorEventCode(val stringValue: String) {
+    SESSION_EXPIRED("session_expired")
+}
