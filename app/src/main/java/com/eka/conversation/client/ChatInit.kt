@@ -62,18 +62,6 @@ object ChatInit {
         Log.d("ChatSDK", "ChatSDK initialized")
     }
 
-    fun sendNewQuery(toolUseId: String?, query: String): Boolean {
-        return chatSessionManager?.sendNewQuery(toolUseId = toolUseId, query = query) ?: false
-    }
-
-    fun sendEnabled() = chatSessionManager?.sendEnabled()
-
-    fun getResponseStream() = chatSessionManager?.responseStream()
-
-    fun startExistingChatSession(sessionId: String) {
-        chatSessionManager?.startExistingChatSession(sessionId = sessionId)
-    }
-
     fun startChatSession() {
         CoroutineScope(Dispatchers.IO).launch {
             repository?.getLastSession()?.onSuccess {
@@ -84,36 +72,18 @@ object ChatInit {
         }
     }
 
-    fun getCurrentSessionId() = chatSessionManager?.getCurrentSessionId()
+    fun sendNewQuery(toolUseId: String?, query: String): Boolean {
+        return chatSessionManager?.sendNewQuery(toolUseId = toolUseId, query = query) ?: false
+    }
 
-    fun listenConnectionState() = chatSessionManager?.listenConnectionState()
+    fun sendEnabled() = chatSessionManager?.sendEnabled()
+
+    fun startExistingChatSession(sessionId: String) {
+        chatSessionManager?.startExistingChatSession(sessionId = sessionId)
+    }
 
     fun getMessagesBySessionId(sessionId: String): Response<Flow<List<Message>>>? {
         return repository?.getMessagesBySessionId(sessionId)
-    }
-
-    fun getSearchResult(query: String, ownerId: String? = null): Flow<List<MessageEntity>>? {
-        if (ownerId.isNullOrEmpty()) {
-            return repository?.getSearchResult(query = query)
-        } else {
-            return repository?.getSearchResultWithOwnerId(query = query, ownerId = ownerId)
-        }
-    }
-
-    fun getAudioRecorder(context: Context): AndroidAudioRecorder {
-        return AndroidAudioRecorder(context)
-    }
-
-    suspend fun getAllSessions(ownerId: String?): Response<List<MessageEntity>>? {
-        return repository?.getAllSession(ownerId = ownerId)
-    }
-
-    suspend fun getAllSessionByChatContext(chatContext: String): Response<List<MessageEntity>>? {
-        return repository?.getMessagesByContext(chatContext = chatContext)
-    }
-
-    suspend fun insertMessages(messages: List<MessageEntity>) {
-        repository?.insertMessages(messages)
     }
 
     fun getChatInitConfiguration(): ChatInitConfiguration {
@@ -121,11 +91,5 @@ object ChatInit {
             throw IllegalStateException("Chat Init configuration not initialized")
         }
         return configuration!!
-    }
-
-    fun changeConfiguration(
-        chatInitConfiguration: ChatInitConfiguration,
-    ) {
-        configuration = chatInitConfiguration
     }
 }
