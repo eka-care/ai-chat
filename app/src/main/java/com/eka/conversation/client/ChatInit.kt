@@ -53,9 +53,9 @@ object ChatInit {
                 )
             }
         } catch (e: Exception) {
-            ChatLogger.e("ChatSDK", "ChatSDK initialization failed", e)
+            ChatLogger.e("ChatSDK", "ChatSDK initialisation failed", e)
         }
-        ChatLogger.d("ChatSDK", "ChatSDK initialized")
+        ChatLogger.d("ChatSDK", "ChatSDK initialised")
     }
 
     fun initialiseChatSessionManager() {
