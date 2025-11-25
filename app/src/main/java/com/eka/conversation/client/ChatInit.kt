@@ -45,7 +45,7 @@ object ChatInit {
             EkaNetwork.init(
                 networkConfig = chatInitConfiguration.networkConfig
             )
-            database = ChatDatabase.getDatabase(context = context)
+            database = ChatDatabase.getDatabase(context = context.applicationContext)
             database?.let {
                 repository = ChatRepositoryImpl(chatDatabase = it)
                 sessionRepository = SessionManagementRepositoryImpl(
