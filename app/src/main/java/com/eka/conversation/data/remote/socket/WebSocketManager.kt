@@ -15,11 +15,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -63,7 +63,9 @@ class WebSocketManager(
         SocketConnectionState.Starting
     )
 
-    private val _events = MutableSharedFlow<SocketMessage>()
+//    private val _events = MutableSharedFlow<SocketMessage>()
+
+    private val _events = Channel<SocketMessage>(capacity = Channel.UNLIMITED)
 
     private var webSocket: WebSocket? = null
     private var reconnectJob: Job? = null
@@ -80,14 +82,14 @@ class WebSocketManager(
         override fun onMessage(webSocket: WebSocket, text: String) {
             ChatLogger.d(TAG, "onMessage TextType $text")
             scope.launch {
-                _events.emit(SocketMessage.TextMessage(text = text))
+                _events.send(SocketMessage.TextMessage(text = text))
             }
         }
 
         override fun onMessage(webSocket: WebSocket, bytes: ByteString) {
             ChatLogger.d(TAG, "onMessage BytesType $bytes")
             scope.launch {
-                _events.emit(SocketMessage.ByteStringMessage(bytes = bytes))
+                _events.send(SocketMessage.ByteStringMessage(bytes = bytes))
             }
         }
 
@@ -132,7 +134,7 @@ class WebSocketManager(
         webSocket?.send(authEvent)
     }
 
-    fun listenEvents() = _events.asSharedFlow()
+    fun listenEvents() = _events.receiveAsFlow()
 
     fun listenConnectionState() = _connectionState.asStateFlow()
 
