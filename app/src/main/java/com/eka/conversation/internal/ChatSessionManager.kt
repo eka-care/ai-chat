@@ -38,6 +38,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
@@ -403,7 +404,6 @@ internal class ChatSessionManager(
         }
     }
 
-
     fun startSession(chatSessionConfig: IChatSessionConfig? = null) {
         coroutineScope.launch {
             createNewSession(userId = authConfiguration.userId).onSuccess {
@@ -466,5 +466,15 @@ internal class ChatSessionManager(
         }
         _sendEnabled.value = !response
         return response
+    }
+
+    fun cleanUp() {
+        try {
+            coroutineScope.cancel()
+            socketManager?.cleanup()
+        } catch (e: Exception) {
+            e.printStackTrace()
+            ChatLogger.d(TAG, e.message.toString())
+        }
     }
 }

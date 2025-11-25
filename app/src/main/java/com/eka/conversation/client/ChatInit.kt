@@ -1,10 +1,10 @@
 package com.eka.conversation.client
 
 import android.content.Context
-import android.util.Log
 import com.eka.conversation.client.interfaces.IChatSessionConfig
 import com.eka.conversation.client.interfaces.IResponseStreamHandler
 import com.eka.conversation.client.models.Message
+import com.eka.conversation.common.ChatLogger
 import com.eka.conversation.common.Response
 import com.eka.conversation.common.models.ChatInitConfiguration
 import com.eka.conversation.data.local.db.ChatDatabase
@@ -30,7 +30,6 @@ object ChatInit {
         chatInitConfiguration: ChatInitConfiguration,
         context: Context
     ) {
-        configuration = chatInitConfiguration
         val auth = chatInitConfiguration.authConfiguration
         require(auth.agentId.isNotBlank()) {
             throw IllegalStateException("Invalid auth configuration agentId is blank!")
@@ -41,26 +40,38 @@ object ChatInit {
         require(auth.businessId.isNotBlank()) {
             throw IllegalStateException("Invalid auth configuration businessId is blank!")
         }
+        configuration = chatInitConfiguration
         try {
             EkaNetwork.init(
                 networkConfig = chatInitConfiguration.networkConfig
             )
             database = ChatDatabase.getDatabase(context = context)
             database?.let {
-                repository = ChatRepositoryImpl(it)
+                repository = ChatRepositoryImpl(chatDatabase = it)
                 sessionRepository = SessionManagementRepositoryImpl(
                     authConfiguration = chatInitConfiguration.authConfiguration
                 )
-                chatSessionManager = ChatSessionManager(
-                    authConfiguration = chatInitConfiguration.authConfiguration,
-                    sessionManagementRepository = sessionRepository!!,
-                    chatRepository = repository!!
-                )
             }
         } catch (e: Exception) {
-            Log.e("ChatSDK", "ChatSDK initialization failed", e)
+            ChatLogger.e("ChatSDK", "ChatSDK initialization failed", e)
         }
-        Log.d("ChatSDK", "ChatSDK initialized")
+        ChatLogger.d("ChatSDK", "ChatSDK initialized")
+    }
+
+    fun initialiseChatSessionManager() {
+        requireNotNull(sessionRepository) {
+            throw IllegalStateException("ChatSDK not initialised!")
+        }
+        requireNotNull(repository) {
+            throw IllegalStateException("ChatSDK not initialised!")
+        }
+        chatSessionManager?.cleanUp()
+        chatSessionManager = null
+        chatSessionManager = ChatSessionManager(
+            authConfiguration = getChatInitConfiguration().authConfiguration,
+            sessionManagementRepository = sessionRepository!!,
+            chatRepository = repository!!
+        )
     }
 
     fun startSession(sessionId: String, chatSessionConfig: IChatSessionConfig) {
@@ -70,6 +81,7 @@ object ChatInit {
                 chatSessionConfig.onFailure(Exception("Session not found!"))
                 return@launch
             }
+            initialiseChatSessionManager()
             chatSessionManager?.startSession(
                 sessionId = sessionId,
                 chatSessionConfig = chatSessionConfig
@@ -79,11 +91,15 @@ object ChatInit {
 
     fun startSession(chatSessionConfig: IChatSessionConfig) {
         CoroutineScope(Dispatchers.IO).launch {
+            initialiseChatSessionManager()
             chatSessionManager?.startSession(chatSessionConfig = chatSessionConfig)
         }
     }
 
     fun sendNewQuery(toolUseId: String?, query: String, responseHandler: IResponseStreamHandler) {
+        requireNotNull(chatSessionManager) {
+            throw IllegalStateException("Start Session not called before sending new query!")
+        }
         chatSessionManager?.sendNewQuery(
             toolUseId = toolUseId,
             query = query,
@@ -96,7 +112,7 @@ object ChatInit {
     }
 
     fun getChatInitConfiguration(): ChatInitConfiguration {
-        if (configuration == null) {
+        requireNotNull(configuration) {
             throw IllegalStateException("Chat Init configuration not initialized")
         }
         return configuration!!
