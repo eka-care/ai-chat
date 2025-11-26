@@ -11,4 +11,4 @@ data class PongEvent(
     override val timeStamp: Long? = null,
     @SerializedName("ev")
     override val eventType: SocketEventType,
-) : BaseSocketEvent(timeStamp = timeStamp, eventType = eventType)
+) : BaseSocketEvent

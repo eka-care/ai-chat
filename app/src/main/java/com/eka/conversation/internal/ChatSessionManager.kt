@@ -1,5 +1,7 @@
 package com.eka.conversation.internal
 
+import android.util.Base64
+import com.eka.conversation.client.ChatInit
 import com.eka.conversation.client.interfaces.IChatSessionConfig
 import com.eka.conversation.client.interfaces.IResponseStreamHandler
 import com.eka.conversation.common.ChatLogger
@@ -26,6 +28,9 @@ import com.eka.conversation.data.remote.socket.events.receive.StreamEvent
 import com.eka.conversation.data.remote.socket.events.receive.toMessageModel
 import com.eka.conversation.data.remote.socket.events.send.SendChatData
 import com.eka.conversation.data.remote.socket.events.send.SendChatEvent
+import com.eka.conversation.data.remote.socket.events.send.SendStreamData
+import com.eka.conversation.data.remote.socket.events.send.SendStreamEvent
+import com.eka.conversation.data.remote.socket.models.AudioFormat
 import com.eka.conversation.data.remote.socket.states.SocketConnectionState
 import com.eka.conversation.data.remote.socket.states.SocketMessage
 import com.eka.conversation.data.remote.utils.UrlUtils.buildSocketUrl
@@ -44,6 +49,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.File
 
 internal class ChatSessionManager(
     private val authConfiguration: AuthConfiguration,
@@ -466,6 +472,39 @@ internal class ChatSessionManager(
         }
         _sendEnabled.value = !response
         return response
+    }
+
+    fun convertAudioToText(audioFilePath: String, audioFormat: AudioFormat) {
+        try {
+            val file = File(audioFilePath)
+            val audioBytes = file.readBytes()
+            val encodedAudioData = Base64.encodeToString(audioBytes, Base64.NO_WRAP)
+            val event = SendStreamEvent(
+                timeStamp = Utils.getCurrentUTCEpochMillis(),
+                eventType = SocketEventType.STREAM,
+                eventId = Utils.getCurrentUTCEpochMillis().toString(),
+                data = SendStreamData(
+                    audio = encodedAudioData,
+                    format = audioFormat.value
+                ),
+                contentType = SocketContentType.AUDIO
+            )
+            val eventJson = SocketUtils.sendEvent(socketEvent = event)
+            if (eventJson.isNullOrBlank()) {
+                ChatInit.getChatInitConfiguration().speechToTextConfiguration.speechToText?.onSpeechToTextComplete(
+                    result = Result.failure(exception = Exception("Error sending audio!"))
+                )
+                return
+            }
+            ChatLogger.d(TAG, eventJson)
+            socketManager?.sendText(eventJson)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            ChatInit.getChatInitConfiguration().speechToTextConfiguration.speechToText?.onSpeechToTextComplete(
+                result = Result.failure(exception = Exception("Error sending audio!"))
+            )
+            ChatLogger.d(TAG, e.message.toString())
+        }
     }
 
     fun cleanUp() {

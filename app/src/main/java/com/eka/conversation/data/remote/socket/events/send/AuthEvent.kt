@@ -15,7 +15,7 @@ data class AuthEvent(
     val data: AuthData,
     @SerializedName("_id")
     val eventId: String
-) : BaseSocketEvent(timeStamp = timeStamp, eventType = eventType)
+) : BaseSocketEvent
 
 @Keep
 data class AuthData(

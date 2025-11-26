@@ -18,7 +18,7 @@ data class SendChatEvent(
     val eventId: String,
     @SerializedName("ct")
     val contentType: SocketContentType
-) : BaseSocketEvent(timeStamp = timeStamp, eventType = eventType)
+) : BaseSocketEvent
 
 @Keep
 data class SendChatData(

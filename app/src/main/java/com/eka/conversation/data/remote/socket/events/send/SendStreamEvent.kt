@@ -18,7 +18,7 @@ data class SendStreamEvent(
     val eventId: String,
     @SerializedName("data")
     val data: SendStreamData
-) : BaseSocketEvent(timeStamp = timeStamp, eventType = eventType)
+) : BaseSocketEvent
 
 //"audio": "Audio In ByteArray",
 //"format": "audio/mp4"

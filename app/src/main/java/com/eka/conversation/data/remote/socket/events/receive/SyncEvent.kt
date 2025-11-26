@@ -13,4 +13,4 @@ data class SyncEvent(
     override val eventType: SocketEventType,
     @SerializedName("_id")
     val eventId: String
-) : BaseSocketEvent(timeStamp = timeStamp, eventType = eventType)
+) : BaseSocketEvent

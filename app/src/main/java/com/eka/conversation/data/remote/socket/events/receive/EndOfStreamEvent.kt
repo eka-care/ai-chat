@@ -16,4 +16,4 @@ data class EndOfStreamEvent(
     val eventId: String,
     @SerializedName("ct")
     val contentType: SocketContentType
-) : BaseSocketEvent(timeStamp = timeStamp, eventType = eventType)
+) : BaseSocketEvent

@@ -8,6 +8,7 @@ import com.eka.conversation.common.ChatLogger
 import com.eka.conversation.common.Response
 import com.eka.conversation.common.models.ChatInitConfiguration
 import com.eka.conversation.data.local.db.ChatDatabase
+import com.eka.conversation.data.remote.socket.models.AudioFormat
 import com.eka.conversation.data.repositories.ChatRepositoryImpl
 import com.eka.conversation.data.repositories.SessionManagementRepositoryImpl
 import com.eka.conversation.domain.repositories.ChatRepository
@@ -71,6 +72,13 @@ object ChatInit {
             authConfiguration = getChatInitConfiguration().authConfiguration,
             sessionManagementRepository = sessionRepository!!,
             chatRepository = repository!!
+        )
+    }
+
+    fun convertAudioToText(audioFilePath: String, audioFormat: AudioFormat) {
+        chatSessionManager?.convertAudioToText(
+            audioFilePath = audioFilePath,
+            audioFormat = audioFormat
         )
     }
 

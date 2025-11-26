@@ -1,5 +1,5 @@
 package com.eka.conversation.features.audio
 
 interface ISpeechToText {
-    fun onSpeechToTextComplete(text: String?)
+    fun onSpeechToTextComplete(result: Result<String?>)
 }

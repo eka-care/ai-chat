@@ -20,7 +20,7 @@ data class StreamEvent(
     val eventId: String,
     @SerializedName("data")
     val data: StreamData
-) : BaseSocketEvent(timeStamp = timeStamp, eventType = eventType)
+) : BaseSocketEvent
 
 @Keep
 data class StreamData(

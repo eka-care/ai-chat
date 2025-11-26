@@ -24,7 +24,7 @@ internal object EventHandler {
             when (receivedChatEvent.contentType) {
                 SocketContentType.INLINE_TEXT -> {
                     ChatInit.getChatInitConfiguration().speechToTextConfiguration.speechToText?.onSpeechToTextComplete(
-                        receivedChatEvent.data?.text
+                        result = Result.success(receivedChatEvent.data?.text)
                     )
                 }
 

@@ -15,7 +15,7 @@ data class ConnectionEvent(
     val data: ConnectionData,
     @SerializedName("msg")
     val message: String? = null
-) : BaseSocketEvent(timeStamp = timeStamp, eventType = eventType)
+) : BaseSocketEvent
 
 @Keep
 data class ConnectionData(
