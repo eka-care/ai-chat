@@ -1,11 +1,13 @@
 package com.eka.conversation.data.repositories
 
+import com.eka.conversation.client.models.ChatInfo
 import com.eka.conversation.client.models.Message
 import com.eka.conversation.common.Response
 import com.eka.conversation.data.local.db.ChatDatabase
 import com.eka.conversation.data.local.db.entities.ChatSession
 import com.eka.conversation.data.local.db.entities.MessageEntity
 import com.eka.conversation.data.local.db.entities.MessageFile
+import com.eka.conversation.data.local.db.entities.toChatInfo
 import com.eka.conversation.data.local.db.entities.toMessageModel
 import com.eka.conversation.domain.repositories.ChatRepository
 import kotlinx.coroutines.Dispatchers
@@ -189,11 +191,11 @@ class ChatRepositoryImpl(
             }
         }
 
-    override suspend fun getLastSession(): Result<ChatSession> = withContext(Dispatchers.IO) {
+    override suspend fun getLastSession(): Result<ChatInfo> = withContext(Dispatchers.IO) {
         try {
             val response = chatDatabase.messageDao().getLastSessionData()
             if (response == null) return@withContext Result.failure(Exception("No session found!"))
-            Result.success(response)
+            Result.success(response.toChatInfo())
         } catch (e: Exception) {
             Result.failure(e)
         }

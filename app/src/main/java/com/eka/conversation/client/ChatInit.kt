@@ -3,10 +3,13 @@ package com.eka.conversation.client
 import android.content.Context
 import com.eka.conversation.client.interfaces.IChatSessionConfig
 import com.eka.conversation.client.interfaces.IResponseStreamHandler
+import com.eka.conversation.client.models.ChatInfo
 import com.eka.conversation.client.models.Message
 import com.eka.conversation.common.ChatLogger
 import com.eka.conversation.common.Response
 import com.eka.conversation.common.models.ChatInitConfiguration
+import com.eka.conversation.common.models.SpeechToTextConfiguration
+import com.eka.conversation.common.models.UserInfo
 import com.eka.conversation.data.local.db.ChatDatabase
 import com.eka.conversation.data.remote.socket.models.AudioFormat
 import com.eka.conversation.data.repositories.ChatRepositoryImpl
@@ -27,6 +30,16 @@ object ChatInit {
     private var sessionRepository: SessionManagementRepository? = null
     private var chatSessionManager: ChatSessionManager? = null
 
+    private var speechToTextConfiguration: SpeechToTextConfiguration? = null
+
+    private fun attachSpeechToTextConfig(speechToTextConfiguration: SpeechToTextConfiguration) {
+        this.speechToTextConfiguration = speechToTextConfiguration
+    }
+
+    internal fun provideSpeechToTextData(result: Result<String?>) {
+        speechToTextConfiguration?.speechToText?.onSpeechToTextComplete(result = result)
+    }
+
     fun initialize(
         chatInitConfiguration: ChatInitConfiguration,
         context: Context
@@ -34,12 +47,6 @@ object ChatInit {
         val auth = chatInitConfiguration.authConfiguration
         require(auth.agentId.isNotBlank()) {
             throw IllegalStateException("Invalid auth configuration agentId is blank!")
-        }
-        require(auth.userId.isNotBlank()) {
-            throw IllegalStateException("Invalid auth configuration userId is blank!")
-        }
-        require(auth.businessId.isNotBlank()) {
-            throw IllegalStateException("Invalid auth configuration businessId is blank!")
         }
         configuration = chatInitConfiguration
         try {
@@ -75,12 +82,22 @@ object ChatInit {
         )
     }
 
-    fun convertAudioToText(audioFilePath: String, audioFormat: AudioFormat) {
+    fun convertAudioToText(
+        audioFilePath: String,
+        audioFormat: AudioFormat,
+        speechToTextConfiguration: SpeechToTextConfiguration
+    ) {
+        attachSpeechToTextConfig(speechToTextConfiguration = speechToTextConfiguration)
         chatSessionManager?.convertAudioToText(
             audioFilePath = audioFilePath,
             audioFormat = audioFormat
         )
     }
+
+    suspend fun getLastSessionData(): Result<ChatInfo>? {
+        return repository?.getLastSession()
+    }
+
 
     fun startSession(sessionId: String, chatSessionConfig: IChatSessionConfig) {
         CoroutineScope(Dispatchers.IO).launch {
@@ -97,10 +114,19 @@ object ChatInit {
         }
     }
 
-    fun startSession(chatSessionConfig: IChatSessionConfig) {
+    fun startSession(userInfo: UserInfo, chatSessionConfig: IChatSessionConfig) {
         CoroutineScope(Dispatchers.IO).launch {
+            require(userInfo.userId.isNotBlank()) {
+                throw IllegalStateException("Invalid user info userId is blank!")
+            }
+            require(userInfo.businessId.isNotBlank()) {
+                throw IllegalStateException("Invalid user info businessId is blank!")
+            }
             initialiseChatSessionManager()
-            chatSessionManager?.startSession(chatSessionConfig = chatSessionConfig)
+            chatSessionManager?.startSession(
+                userInfo = userInfo,
+                chatSessionConfig = chatSessionConfig
+            )
         }
     }
 

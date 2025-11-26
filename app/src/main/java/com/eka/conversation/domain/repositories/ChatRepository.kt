@@ -1,5 +1,6 @@
 package com.eka.conversation.domain.repositories
 
+import com.eka.conversation.client.models.ChatInfo
 import com.eka.conversation.client.models.Message
 import com.eka.conversation.common.Response
 import com.eka.conversation.data.local.db.entities.ChatSession
@@ -32,7 +33,7 @@ interface ChatRepository {
     suspend fun getSessionIdBySessionIdentity(sessionIdentity: String): Response<String?>
 
     suspend fun getSessionData(sessionId: String): Result<ChatSession>
-    suspend fun getLastSession(): Result<ChatSession>
+    suspend fun getLastSession(): Result<ChatInfo>
 
     suspend fun insertChatSession(session: ChatSession): Result<Boolean>
 }

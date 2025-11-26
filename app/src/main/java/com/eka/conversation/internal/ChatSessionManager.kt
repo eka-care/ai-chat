@@ -7,6 +7,7 @@ import com.eka.conversation.client.interfaces.IResponseStreamHandler
 import com.eka.conversation.common.ChatLogger
 import com.eka.conversation.common.Utils
 import com.eka.conversation.common.models.AuthConfiguration
+import com.eka.conversation.common.models.UserInfo
 import com.eka.conversation.data.local.db.entities.ChatSession
 import com.eka.conversation.data.local.db.entities.MessageEntity
 import com.eka.conversation.data.local.db.entities.models.MessageRole
@@ -386,6 +387,7 @@ internal class ChatSessionManager(
                     if (newSessionToken.isNullOrBlank()) {
                         _connectionState.value =
                             SocketConnectionState.Error(error = Exception("Session Expired!"))
+                        chatSessionConfig?.onFailure(error = Exception("Session Expired!"))
                         return@launch
                     }
                     chatRepository.insertChatSession(
@@ -401,18 +403,20 @@ internal class ChatSessionManager(
                     )
                 }.onFailure {
                     _connectionState.value = SocketConnectionState.Error(error = Exception(it))
+                    chatSessionConfig?.onFailure(error = Exception(it))
                 }
             }.onFailure { exception ->
                 _connectionState.value =
                     SocketConnectionState.Error(error = Exception(exception))
+                chatSessionConfig?.onFailure(error = Exception(exception))
             }
             return@launch
         }
     }
 
-    fun startSession(chatSessionConfig: IChatSessionConfig? = null) {
+    fun startSession(userInfo: UserInfo, chatSessionConfig: IChatSessionConfig? = null) {
         coroutineScope.launch {
-            createNewSession(userId = authConfiguration.userId).onSuccess {
+            createNewSession(userId = userInfo.userId).onSuccess {
                 val newSessionId = it.sessionId
                 val newSessionToken = it.sessionToken
                 if (newSessionId.isNullOrBlank() || newSessionToken.isNullOrBlank()) {
@@ -426,8 +430,8 @@ internal class ChatSessionManager(
                         sessionToken = newSessionToken,
                         createdAt = Utils.getCurrentUTCEpochMillis(),
                         updatedAt = Utils.getCurrentUTCEpochMillis(),
-                        ownerId = authConfiguration.userId,
-                        businessId = authConfiguration.businessId
+                        ownerId = userInfo.userId,
+                        businessId = userInfo.businessId
                     )
                 )
                 createSocketConnection(
@@ -491,7 +495,7 @@ internal class ChatSessionManager(
             )
             val eventJson = SocketUtils.sendEvent(socketEvent = event)
             if (eventJson.isNullOrBlank()) {
-                ChatInit.getChatInitConfiguration().speechToTextConfiguration.speechToText?.onSpeechToTextComplete(
+                ChatInit.provideSpeechToTextData(
                     result = Result.failure(exception = Exception("Error sending audio!"))
                 )
                 return
@@ -500,7 +504,7 @@ internal class ChatSessionManager(
             socketManager?.sendText(eventJson)
         } catch (e: Exception) {
             e.printStackTrace()
-            ChatInit.getChatInitConfiguration().speechToTextConfiguration.speechToText?.onSpeechToTextComplete(
+            ChatInit.provideSpeechToTextData(
                 result = Result.failure(exception = Exception("Error sending audio!"))
             )
             ChatLogger.d(TAG, e.message.toString())

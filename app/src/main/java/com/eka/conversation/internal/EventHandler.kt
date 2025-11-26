@@ -23,7 +23,7 @@ internal object EventHandler {
             val gson = Gson()
             when (receivedChatEvent.contentType) {
                 SocketContentType.INLINE_TEXT -> {
-                    ChatInit.getChatInitConfiguration().speechToTextConfiguration.speechToText?.onSpeechToTextComplete(
+                    ChatInit.provideSpeechToTextData(
                         result = Result.success(receivedChatEvent.data?.text)
                     )
                 }

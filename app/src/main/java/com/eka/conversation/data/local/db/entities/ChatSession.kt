@@ -4,6 +4,7 @@ import androidx.annotation.Keep
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import com.eka.conversation.client.models.ChatInfo
 import com.eka.conversation.common.Constants
 
 @Keep
@@ -23,3 +24,13 @@ data class ChatSession(
     @ColumnInfo(name = "business_id")
     val businessId: String
 )
+
+fun ChatSession.toChatInfo(): ChatInfo {
+    return ChatInfo(
+        sessionId = sessionId,
+        createdAt = createdAt,
+        updatedAt = updatedAt,
+        ownerId = ownerId,
+        businessId = businessId
+    )
+}
