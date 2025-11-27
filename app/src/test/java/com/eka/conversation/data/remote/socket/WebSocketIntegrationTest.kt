@@ -53,13 +53,13 @@ class WebSocketIntegrationTest {
             return
         }
 
-        webSocketManager = WebSocketManager(WEBSOCKET_URL, scope)
+        webSocketManager = WebSocketManager(WEBSOCKET_URL, scope, sessionToken = "", agentId = "")
 
         val states = mutableListOf<SocketConnectionState>()
         var connected = false
 
         val collectionJob = scope.launch {
-            webSocketManager.listenConnectionState().collect { state ->
+            webSocketManager.observeConnectionState().collect { state ->
                 synchronized(states) {
                     states.add(state)
                 }
@@ -107,7 +107,7 @@ class WebSocketIntegrationTest {
             return
         }
 
-        webSocketManager = WebSocketManager(WEBSOCKET_URL, scope)
+        webSocketManager = WebSocketManager(WEBSOCKET_URL, scope, sessionToken = "", agentId = "")
 
         val states = mutableListOf<SocketConnectionState>()
         val messages = mutableListOf<SocketMessage>()
@@ -115,7 +115,7 @@ class WebSocketIntegrationTest {
 
         // Collect states
         val stateJob = scope.launch {
-            webSocketManager.listenConnectionState().collect { state ->
+            webSocketManager.observeConnectionState().collect { state ->
                 synchronized(states) {
                     states.add(state)
                 }
@@ -128,7 +128,7 @@ class WebSocketIntegrationTest {
 
         // Collect messages
         val messageJob = scope.launch {
-            webSocketManager.listenEvents().collect { message ->
+            webSocketManager.observeEvents().collect { message ->
                 synchronized(messages) {
                     messages.add(message)
                 }
@@ -181,13 +181,14 @@ class WebSocketIntegrationTest {
         webSocketManager = WebSocketManager(
             WEBSOCKET_URL,
             scope,
-            maxReconnectAttempts = 2
+            maxReconnectAttempts = 2,
+            sessionToken = "", agentId = ""
         )
 
         val states = mutableListOf<SocketConnectionState>()
 
         val collectionJob = scope.launch {
-            webSocketManager.listenConnectionState().collect { state ->
+            webSocketManager.observeConnectionState().collect { state ->
                 synchronized(states) {
                     states.add(state)
                 }
@@ -228,12 +229,12 @@ class WebSocketIntegrationTest {
             return
         }
 
-        webSocketManager = WebSocketManager(WEBSOCKET_URL, scope)
+        webSocketManager = WebSocketManager(WEBSOCKET_URL, scope, sessionToken = "", agentId = "")
 
         val states = mutableListOf<SocketConnectionState>()
 
         val collectionJob = scope.launch {
-            webSocketManager.listenConnectionState().collect { state ->
+            webSocketManager.observeConnectionState().collect { state ->
                 synchronized(states) {
                     states.add(state)
                 }

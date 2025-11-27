@@ -15,9 +15,9 @@ object UrlBuilder {
 
     fun buildSocketUrl(sessionId: String): String {
         return if (ChatSDK.getChatConfiguration().environment == Environment.PROD) {
-            "wss://matrix-ws.eka.care/ws/med-assist/session/${sessionId}/"
+            "${BuildConfig.MATRIX_SOCKET_PROD}ws/med-assist/session/${sessionId}/"
         } else {
-            "wss://matrix-ws.dev.eka.care/ws/med-assist/session/${sessionId}/"
+            "${BuildConfig.MATRIX_SOCKET_DEV}ws/med-assist/session/${sessionId}/"
         }
     }
 }

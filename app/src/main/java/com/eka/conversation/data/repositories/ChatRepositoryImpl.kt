@@ -3,6 +3,7 @@ package com.eka.conversation.data.repositories
 import com.eka.conversation.client.models.ChatInfo
 import com.eka.conversation.client.models.Message
 import com.eka.conversation.common.Response
+import com.eka.conversation.common.models.UserInfo
 import com.eka.conversation.data.local.db.ChatDatabase
 import com.eka.conversation.data.local.db.entities.ChatSession
 import com.eka.conversation.data.local.db.entities.MessageEntity
@@ -17,14 +18,13 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 
 class ChatRepositoryImpl(
-    private val chatDatabase : ChatDatabase
+    private val chatDatabase: ChatDatabase
 ) : ChatRepository {
     override suspend fun insertMessages(messages: List<MessageEntity>) {
         withContext(Dispatchers.IO) {
             try {
                 chatDatabase.messageDao().insertMessages(messages = messages)
-            }
-            catch (_ : Exception) {
+            } catch (_: Exception) {
             }
         }
     }
@@ -33,8 +33,7 @@ class ChatRepositoryImpl(
         withContext(Dispatchers.IO) {
             try {
                 chatDatabase.messageDao().updateMessage(message = message)
-            }
-            catch (_ : Exception) {
+            } catch (_: Exception) {
             }
         }
     }
@@ -44,8 +43,8 @@ class ChatRepositoryImpl(
             try {
                 val response = chatDatabase.messageDao().getLastSessionId()
                 response
-            } catch (_ : Exception) {
-                flow{}
+            } catch (_: Exception) {
+                flow {}
             }
         }
     }
@@ -69,8 +68,8 @@ class ChatRepositoryImpl(
             val response = chatDatabase.messageDao()
                 .searchMessagesWithOwnerId(query = buildQuery, ownerId = ownerId)
             return response
-        } catch (_ : Exception) {
-            return flow{}
+        } catch (_: Exception) {
+            return flow {}
         }
     }
 
@@ -79,7 +78,7 @@ class ChatRepositoryImpl(
             val response = chatDatabase.messageDao().getMessagesBySessionId(sessionId = sessionId)
                 .map { messageList -> messageList.mapNotNull { message -> message.toMessageModel() } }
             Response.Success(data = response)
-        } catch (e : Exception) {
+        } catch (e: Exception) {
             Response.Error(message = e.message.toString())
         }
     }
@@ -90,7 +89,7 @@ class ChatRepositoryImpl(
                 val response = chatDatabase.messageDao()
                     .getMessageById(messageId = messageId, sessionId = sessionId)
                 response
-            } catch (e : Exception) {
+            } catch (e: Exception) {
                 null
             }
         }
@@ -112,7 +111,7 @@ class ChatRepositoryImpl(
             try {
                 val result = chatDatabase.messageDao().getAllSession(ownerId)
                 Response.Success(data = result)
-            } catch (e : Exception) {
+            } catch (e: Exception) {
                 Response.Error(message = e.message.toString())
             }
         }
@@ -192,23 +191,32 @@ class ChatRepositoryImpl(
             }
         }
 
-    override suspend fun getLastSession(): Result<ChatInfo> = withContext(Dispatchers.IO) {
-        try {
-            val response = chatDatabase.messageDao().getLastSessionData()
-            if (response == null) return@withContext Result.failure(Exception("No session found!"))
-            Result.success(response.toChatInfo())
-        } catch (e: Exception) {
-            Result.failure(e)
+    override suspend fun getLastSession(userInfo: UserInfo?): Result<ChatInfo> =
+        withContext(Dispatchers.IO) {
+            try {
+                val response = if (userInfo == null) {
+                    chatDatabase.messageDao().getLastSession()
+                } else {
+                    chatDatabase.messageDao()
+                        .getLastSessionData(
+                            ownerId = userInfo.userId,
+                            businessId = userInfo.businessId
+                        )
+                }
+                if (response == null) return@withContext Result.failure(Exception("No session found for userId and BusinessId!"))
+                Result.success(response.toChatInfo())
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
         }
-    }
 
     override suspend fun insertChatSession(session: ChatSession): Result<Boolean> =
         withContext(Dispatchers.IO) {
-        try {
-            chatDatabase.messageDao().insertChatSession(session)
-            Result.success(true)
-        } catch (e: Exception) {
-            Result.failure(e)
+            try {
+                chatDatabase.messageDao().insertChatSession(session)
+                Result.success(true)
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
         }
-    }
 }

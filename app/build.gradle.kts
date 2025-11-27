@@ -34,6 +34,8 @@ android {
             buildConfigField("boolean", "IS_DEBUG", "true")
             buildConfigField("String", "MATRIX_URL", "\"${config["MATRIX_URL"]}\"")
             buildConfigField("String", "MATRIX_URL_DEV", "\"${config["MATRIX_URL_DEV"]}\"")
+            buildConfigField("String", "MATRIX_SOCKET_PROD", "\"${config["MATRIX_SOCKET_PROD"]}\"")
+            buildConfigField("String", "MATRIX_SOCKET_DEV", "\"${config["MATRIX_SOCKET_DEV"]}\"")
         }
         create("staging") {
             isMinifyEnabled = false
@@ -44,6 +46,8 @@ android {
             buildConfigField("boolean", "IS_DEBUG", "false")
             buildConfigField("String", "MATRIX_URL", "\"${config["MATRIX_URL"]}\"")
             buildConfigField("String", "MATRIX_URL_DEV", "\"${config["MATRIX_URL_DEV"]}\"")
+            buildConfigField("String", "MATRIX_SOCKET_PROD", "\"${config["MATRIX_SOCKET_PROD"]}\"")
+            buildConfigField("String", "MATRIX_SOCKET_DEV", "\"${config["MATRIX_SOCKET_DEV"]}\"")
         }
         release {
             isMinifyEnabled = false
@@ -54,6 +58,8 @@ android {
             buildConfigField("boolean", "IS_DEBUG", "false")
             buildConfigField("String", "MATRIX_URL", "\"${config["MATRIX_URL"]}\"")
             buildConfigField("String", "MATRIX_URL_DEV", "\"${config["MATRIX_URL_DEV"]}\"")
+            buildConfigField("String", "MATRIX_SOCKET_PROD", "\"${config["MATRIX_SOCKET_PROD"]}\"")
+            buildConfigField("String", "MATRIX_SOCKET_DEV", "\"${config["MATRIX_SOCKET_DEV"]}\"")
         }
     }
     kotlin {

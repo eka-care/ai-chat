@@ -147,8 +147,11 @@ interface MessageDao {
     @Query("SELECT * FROM ${Constants.CHAT_SESSION} WHERE session_id = :sessionId")
     fun getChatSessionById(sessionId: String): ChatSession
 
+    @Query("SELECT * FROM ${Constants.CHAT_SESSION} WHERE owner_id = :ownerId AND business_id = :businessId ORDER BY updated_at DESC LIMIT 1 ")
+    fun getLastSessionData(ownerId: String, businessId: String): ChatSession?
+
     @Query("SELECT * FROM ${Constants.CHAT_SESSION} ORDER BY updated_at DESC LIMIT 1 ")
-    fun getLastSessionData(): ChatSession?
+    fun getLastSession(): ChatSession?
 
     @Upsert
     fun insertChatSession(chatSession: ChatSession)

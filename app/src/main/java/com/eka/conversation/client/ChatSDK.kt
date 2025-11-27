@@ -94,8 +94,8 @@ object ChatSDK {
         )
     }
 
-    suspend fun getLastSession(): Result<ChatInfo>? {
-        return repository?.getLastSession()
+    suspend fun getLastSession(userInfo: UserInfo?): Result<ChatInfo>? {
+        return repository?.getLastSession(userInfo = userInfo)
     }
 
 
