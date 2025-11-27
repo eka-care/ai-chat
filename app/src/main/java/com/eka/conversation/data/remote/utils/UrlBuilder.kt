@@ -4,7 +4,7 @@ import com.eka.conversation.BuildConfig
 import com.eka.conversation.client.ChatSDK
 import com.eka.conversation.client.models.Environment
 
-object UrlUtils {
+object UrlBuilder {
     fun getMatrixEndpoint(): String {
         return if (ChatSDK.getChatConfiguration().environment == Environment.DEV) {
             BuildConfig.MATRIX_URL_DEV

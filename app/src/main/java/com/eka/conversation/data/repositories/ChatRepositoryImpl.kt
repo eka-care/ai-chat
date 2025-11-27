@@ -99,8 +99,8 @@ class ChatRepositoryImpl(
     override suspend fun getLastMessagesOfEachSessionId(): Response<List<MessageEntity>> {
         return withContext(Dispatchers.IO) {
             try {
-                val res = chatDatabase.messageDao().getAllSession(null)
-                Response.Success(data = res)
+                val result = chatDatabase.messageDao().getAllSession(null)
+                Response.Success(data = result)
             } catch (e: Exception) {
                 Response.Error(message = e.message.toString())
             }
@@ -110,8 +110,8 @@ class ChatRepositoryImpl(
     override suspend fun getAllSession(ownerId: String?): Response<List<MessageEntity>> {
         return withContext(Dispatchers.IO) {
             try {
-                val res = chatDatabase.messageDao().getAllSession(ownerId)
-                Response.Success(data = res)
+                val result = chatDatabase.messageDao().getAllSession(ownerId)
+                Response.Success(data = result)
             } catch (e : Exception) {
                 Response.Error(message = e.message.toString())
             }
@@ -121,8 +121,8 @@ class ChatRepositoryImpl(
     override suspend fun getMessagesByContext(chatContext: String): Response<List<MessageEntity>> {
         return withContext(Dispatchers.IO) {
             try {
-                val res = chatDatabase.messageDao().getMessagesByContext()
-                Response.Success(data = res)
+                val result = chatDatabase.messageDao().getMessagesByContext()
+                Response.Success(data = result)
             } catch (e: Exception) {
                 Response.Error(message = e.message.toString())
             }
@@ -141,9 +141,9 @@ class ChatRepositoryImpl(
     override suspend fun getLastMessagesOfEachSessionIdFilterByOwnerId(ownerId: String): Response<List<MessageEntity>> {
         return withContext(Dispatchers.IO) {
             try {
-                val res = chatDatabase.messageDao()
+                val result = chatDatabase.messageDao()
                     .getAllLastMessagesOfEachSessionWithFilter(ownerId = ownerId)
-                Response.Success(data = res)
+                Response.Success(data = result)
             } catch (e: Exception) {
                 Response.Error(message = e.message.toString())
             }

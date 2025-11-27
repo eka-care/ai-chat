@@ -7,7 +7,7 @@ import com.eka.conversation.data.remote.models.requests.CreateSessionRequest
 import com.eka.conversation.data.remote.models.responses.CreateSessionResponse
 import com.eka.conversation.data.remote.models.responses.RefreshTokenResponse
 import com.eka.conversation.data.remote.models.responses.SessionStatusResponse
-import com.eka.conversation.data.remote.utils.UrlUtils
+import com.eka.conversation.data.remote.utils.UrlBuilder
 import com.eka.conversation.domain.repositories.SessionManagementRepository
 import com.eka.networking.client.EkaNetwork
 import com.haroldadmin.cnradapter.NetworkResponse
@@ -23,7 +23,7 @@ class SessionManagementRepositoryImpl(
         service = ChatSessionService.SERVICE_NAME,
     ).create(
         serviceClass = ChatSessionService::class.java,
-        serviceUrl = UrlUtils.getMatrixEndpoint()
+        serviceUrl = UrlBuilder.getMatrixEndpoint()
     )
 
     val baseHeaders = HashMap<String, String>().apply {
@@ -49,8 +49,6 @@ class SessionManagementRepositoryImpl(
     override suspend fun checkSessionStatus(sessionId: String): NetworkResponse<SessionStatusResponse, SessionStatusResponse> =
         withContext(Dispatchers.IO) {
             try {
-                val headers = HashMap<String, Any>()
-                headers.put("x-agent-id", authConfiguration.agentId)
                 val response = matrixService.checkSessionStatus(
                     headerMap = baseHeaders,
                     sessionId = sessionId

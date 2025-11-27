@@ -13,8 +13,8 @@ import com.eka.conversation.data.remote.socket.events.send.SendStreamEvent
 import com.google.gson.Gson
 import org.json.JSONObject
 
-object SocketUtils {
-    fun buildReceiveEvent(
+object SocketEventSerializer {
+    fun deserializeReceivedEvent(
         data: String,
     ): BaseSocketEvent? {
         val jsonData = JSONObject(data)
@@ -47,7 +47,7 @@ object SocketUtils {
         }
     }
 
-    fun sendEvent(
+    fun serializeEvent(
         socketEvent: BaseSocketEvent
     ): String? {
         return when (socketEvent.eventType) {

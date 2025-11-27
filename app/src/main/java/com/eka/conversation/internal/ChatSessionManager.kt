@@ -5,7 +5,7 @@ import com.eka.conversation.client.ChatSDK
 import com.eka.conversation.client.interfaces.ResponseStreamCallback
 import com.eka.conversation.client.interfaces.SessionCallback
 import com.eka.conversation.common.ChatLogger
-import com.eka.conversation.common.Utils
+import com.eka.conversation.common.TimeUtils
 import com.eka.conversation.common.models.AuthConfiguration
 import com.eka.conversation.common.models.UserInfo
 import com.eka.conversation.data.local.db.entities.ChatSession
@@ -15,7 +15,7 @@ import com.eka.conversation.data.local.db.entities.models.MessageType
 import com.eka.conversation.data.remote.models.responses.CreateSessionResponse
 import com.eka.conversation.data.remote.models.responses.RefreshTokenResponse
 import com.eka.conversation.data.remote.models.responses.SessionStatusResponse
-import com.eka.conversation.data.remote.socket.SocketUtils
+import com.eka.conversation.data.remote.socket.SocketEventSerializer
 import com.eka.conversation.data.remote.socket.WebSocketManager
 import com.eka.conversation.data.remote.socket.events.BaseSocketEvent
 import com.eka.conversation.data.remote.socket.events.SocketContentType
@@ -34,7 +34,7 @@ import com.eka.conversation.data.remote.socket.events.send.SendStreamEvent
 import com.eka.conversation.data.remote.socket.models.AudioFormat
 import com.eka.conversation.data.remote.socket.states.SocketConnectionState
 import com.eka.conversation.data.remote.socket.states.SocketMessage
-import com.eka.conversation.data.remote.utils.UrlUtils.buildSocketUrl
+import com.eka.conversation.data.remote.utils.UrlBuilder.buildSocketUrl
 import com.eka.conversation.domain.repositories.ChatRepository
 import com.eka.conversation.domain.repositories.SessionManagementRepository
 import com.eka.conversation.internal.SocketEventHandler.handleReceiveChatEvent
@@ -76,15 +76,15 @@ internal class ChatSessionManager(
     private var socketManager: WebSocketManager? = null
     private var currentSessionId: String? = null
 
-    private fun responseStream() =
+    private fun getResponseStream() =
         _responseStream.asStateFlow().map { it?.toMessageModel(sessionId = currentSessionId ?: "") }
 
     private fun listenSocketEvents() {
         eventListenerJob?.cancel()
         eventListenerJob = null
         eventListenerJob = coroutineScope.launch {
-            socketManager?.listenEvents()?.collect {
-                handleSocketEvent(socketMessage = it)
+            socketManager?.observeEvents()?.collect { socketMessage ->
+                handleSocketEvent(socketMessage = socketMessage)
             }
         }
     }
@@ -93,8 +93,8 @@ internal class ChatSessionManager(
         connectionListenerJob?.cancel()
         connectionListenerJob = null
         connectionListenerJob = coroutineScope.launch {
-            socketManager?.listenConnectionState()?.collect {
-                _connectionState.value = it
+            socketManager?.observeConnectionState()?.collect { state ->
+                _connectionState.value = state
             }
         }
     }
@@ -102,7 +102,8 @@ internal class ChatSessionManager(
     private fun handleSocketEvent(socketMessage: SocketMessage) {
         when (socketMessage) {
             is SocketMessage.TextMessage -> {
-                val socketEvent = SocketUtils.buildReceiveEvent(data = socketMessage.text)
+                val socketEvent =
+                    SocketEventSerializer.deserializeReceivedEvent(data = socketMessage.text)
                 storeSocketEventToDB(socketEvent)
             }
 
@@ -171,7 +172,7 @@ internal class ChatSessionManager(
                         messageId = socketEvent.eventId,
                         sessionId = sessionId,
                         role = MessageRole.USER,
-                        createdAt = Utils.getCurrentUTCEpochMillis(),
+                        createdAt = TimeUtils.getCurrentUTCEpochMillis(),
                         messageContent = Gson().toJson(socketEvent)
                     )
                 )
@@ -216,7 +217,7 @@ internal class ChatSessionManager(
                         messageId = event.eventId,
                         sessionId = sessionId,
                         role = MessageRole.AI,
-                        createdAt = Utils.getCurrentUTCEpochMillis(),
+                        createdAt = TimeUtils.getCurrentUTCEpochMillis(),
                         messageContent = Gson().toJson(event)
                     )
                 )
@@ -393,7 +394,7 @@ internal class ChatSessionManager(
                     chatRepository.insertChatSession(
                         session = chatSession.copy(
                             sessionToken = newSessionToken,
-                            updatedAt = Utils.getCurrentUTCEpochMillis()
+                            updatedAt = TimeUtils.getCurrentUTCEpochMillis()
                         )
                     )
                     createSocketConnection(
@@ -428,8 +429,8 @@ internal class ChatSessionManager(
                     ChatSession(
                         sessionId = newSessionId,
                         sessionToken = newSessionToken,
-                        createdAt = Utils.getCurrentUTCEpochMillis(),
-                        updatedAt = Utils.getCurrentUTCEpochMillis(),
+                        createdAt = TimeUtils.getCurrentUTCEpochMillis(),
+                        updatedAt = TimeUtils.getCurrentUTCEpochMillis(),
                         ownerId = userInfo.userId,
                         businessId = userInfo.businessId
                     )
@@ -453,23 +454,23 @@ internal class ChatSessionManager(
         responseHandler: ResponseStreamCallback
     ): Boolean {
         val chatQuery = SendChatEvent(
-            timeStamp = Utils.getCurrentUTCEpochMillis(),
+            timeStamp = TimeUtils.getCurrentUTCEpochMillis(),
             eventType = SocketEventType.CHAT,
-            eventId = Utils.getCurrentUTCEpochMillis().toString(),
+            eventId = TimeUtils.getCurrentUTCEpochMillis().toString(),
             data = SendChatData(
                 text = query,
                 toolUseId = toolUseId
             ),
             contentType = SocketContentType.TEXT
         )
-        val stringQuery = SocketUtils.sendEvent(chatQuery)
+        val stringQuery = SocketEventSerializer.serializeEvent(chatQuery)
         if (stringQuery.isNullOrBlank()) {
             return false
         }
         _responseStream.value = null
         val response = socketManager?.sendText(stringQuery) ?: false
         if (response) {
-            responseHandler.onSuccess(responseStream = responseStream())
+            responseHandler.onSuccess(responseStream = getResponseStream())
             storeSocketEventToDB(socketEvent = chatQuery)
         } else {
             responseHandler.onFailure(Exception("Error sending query!"))
@@ -484,16 +485,16 @@ internal class ChatSessionManager(
             val audioBytes = file.readBytes()
             val encodedAudioData = Base64.encodeToString(audioBytes, Base64.NO_WRAP)
             val event = SendStreamEvent(
-                timeStamp = Utils.getCurrentUTCEpochMillis(),
+                timeStamp = TimeUtils.getCurrentUTCEpochMillis(),
                 eventType = SocketEventType.STREAM,
-                eventId = Utils.getCurrentUTCEpochMillis().toString(),
+                eventId = TimeUtils.getCurrentUTCEpochMillis().toString(),
                 data = SendStreamData(
                     audio = encodedAudioData,
                     format = audioFormat.value
                 ),
                 contentType = SocketContentType.AUDIO
             )
-            val eventJson = SocketUtils.sendEvent(socketEvent = event)
+            val eventJson = SocketEventSerializer.serializeEvent(socketEvent = event)
             if (eventJson.isNullOrBlank()) {
                 ChatSDK.provideSpeechToTextData(
                     result = Result.failure(exception = Exception("Error sending audio!"))

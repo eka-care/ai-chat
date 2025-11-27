@@ -13,7 +13,7 @@ data class MessageFile(
     @PrimaryKey(autoGenerate = true)
     @ColumnInfo(name = "local_file_id")
     val localFileId : Int,
-    @ColumnInfo("message_file_name") val name: String? = null,
-    @ColumnInfo("message_file_src") val src: String,
+    @ColumnInfo("message_file_name") val fileName: String? = null,
+    @ColumnInfo("message_file_src") val filePath: String,
     @ColumnInfo("message_file_type") val fileType: MessageFileType = MessageFileType.ANY
 )

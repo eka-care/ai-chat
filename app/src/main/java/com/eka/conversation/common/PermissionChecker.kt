@@ -5,7 +5,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import androidx.core.content.ContextCompat
 
-object PermissionUtils {
+object PermissionChecker {
     fun hasRecordAudioPermission(context: Context): Boolean {
         return ContextCompat.checkSelfPermission(
             context,

@@ -10,7 +10,7 @@ import com.eka.conversation.client.models.Message
 import com.eka.conversation.common.Constants
 import com.eka.conversation.data.local.db.entities.models.MessageRole
 import com.eka.conversation.data.local.db.entities.models.MessageType
-import com.eka.conversation.data.remote.socket.SocketUtils
+import com.eka.conversation.data.remote.socket.SocketEventSerializer
 import com.eka.conversation.data.remote.socket.events.receive.ReceiveChatEvent
 import com.eka.conversation.data.remote.socket.events.receive.StreamEvent
 import com.eka.conversation.data.remote.socket.events.send.SendChatEvent
@@ -60,7 +60,7 @@ data class MessageFTSEntity(
 
 fun MessageEntity.toMessageModel(): Message? {
     return if (role == MessageRole.AI) {
-        val socketEvent = SocketUtils.buildReceiveEvent(data = messageContent)
+        val socketEvent = SocketEventSerializer.deserializeReceivedEvent(data = messageContent)
         when (socketEvent) {
             is ReceiveChatEvent -> {
                 when (messageType) {

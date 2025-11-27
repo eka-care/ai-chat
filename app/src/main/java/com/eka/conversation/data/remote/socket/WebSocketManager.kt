@@ -2,7 +2,7 @@ package com.eka.conversation.data.remote.socket
 
 import android.util.Log
 import com.eka.conversation.common.ChatLogger
-import com.eka.conversation.common.Utils
+import com.eka.conversation.common.TimeUtils
 import com.eka.conversation.data.remote.socket.events.SocketEventType
 import com.eka.conversation.data.remote.socket.events.send.AuthData
 import com.eka.conversation.data.remote.socket.events.send.AuthEvent
@@ -115,10 +115,10 @@ class WebSocketManager(
     }
 
     private fun sendAuthToken() {
-        val authEvent = SocketUtils.sendEvent(
+        val authEvent = SocketEventSerializer.serializeEvent(
             AuthEvent(
-                timeStamp = Utils.getCurrentUTCEpochMillis(),
-                eventId = Utils.getCurrentUTCEpochMillis().toString(),
+                timeStamp = TimeUtils.getCurrentUTCEpochMillis(),
+                eventId = TimeUtils.getCurrentUTCEpochMillis().toString(),
                 eventType = SocketEventType.AUTH,
                 data = AuthData(
                     token = sessionToken
@@ -135,9 +135,9 @@ class WebSocketManager(
         webSocket?.send(authEvent)
     }
 
-    fun listenEvents() = _events.asSharedFlow()
+    fun observeEvents() = _events.asSharedFlow()
 
-    fun listenConnectionState() = _connectionState.asStateFlow()
+    fun observeConnectionState() = _connectionState.asStateFlow()
 
     // reconnect when it is closed because of non user action in reason code in onClosed.
     fun sendText(message: String): Boolean {

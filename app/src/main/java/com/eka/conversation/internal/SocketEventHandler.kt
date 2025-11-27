@@ -1,7 +1,7 @@
 package com.eka.conversation.internal
 
 import com.eka.conversation.client.ChatSDK
-import com.eka.conversation.common.Utils
+import com.eka.conversation.common.TimeUtils
 import com.eka.conversation.data.local.db.entities.MessageEntity
 import com.eka.conversation.data.local.db.entities.models.MessageRole
 import com.eka.conversation.data.local.db.entities.models.MessageType
@@ -36,7 +36,7 @@ internal object SocketEventHandler {
                                 messageId = receivedChatEvent.eventId,
                                 sessionId = sessionId,
                                 role = MessageRole.AI,
-                                createdAt = Utils.getCurrentUTCEpochMillis(),
+                                createdAt = TimeUtils.getCurrentUTCEpochMillis(),
                                 messageContent = gson.toJson(receivedChatEvent)
                             )
                         )
@@ -51,7 +51,7 @@ internal object SocketEventHandler {
                                 messageId = receivedChatEvent.eventId,
                                 sessionId = sessionId,
                                 role = MessageRole.AI,
-                                createdAt = Utils.getCurrentUTCEpochMillis(),
+                                createdAt = TimeUtils.getCurrentUTCEpochMillis(),
                                 messageContent = gson.toJson(receivedChatEvent)
                             )
                         )
