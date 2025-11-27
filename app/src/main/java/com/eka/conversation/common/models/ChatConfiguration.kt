@@ -5,7 +5,7 @@ import com.eka.conversation.client.models.Environment
 import com.eka.networking.client.NetworkConfig
 
 @Keep
-data class ChatInitConfiguration(
+data class ChatConfiguration(
     val networkConfig: NetworkConfig,
     val environment: Environment = Environment.PROD,
     val authConfiguration: AuthConfiguration

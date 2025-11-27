@@ -1,9 +1,9 @@
 package com.eka.conversation.internal
 
 import android.util.Base64
-import com.eka.conversation.client.ChatInit
-import com.eka.conversation.client.interfaces.IChatSessionConfig
-import com.eka.conversation.client.interfaces.IResponseStreamHandler
+import com.eka.conversation.client.ChatSDK
+import com.eka.conversation.client.interfaces.ResponseStreamCallback
+import com.eka.conversation.client.interfaces.SessionCallback
 import com.eka.conversation.common.ChatLogger
 import com.eka.conversation.common.Utils
 import com.eka.conversation.common.models.AuthConfiguration
@@ -37,7 +37,7 @@ import com.eka.conversation.data.remote.socket.states.SocketMessage
 import com.eka.conversation.data.remote.utils.UrlUtils.buildSocketUrl
 import com.eka.conversation.domain.repositories.ChatRepository
 import com.eka.conversation.domain.repositories.SessionManagementRepository
-import com.eka.conversation.internal.EventHandler.handleReceiveChatEvent
+import com.eka.conversation.internal.SocketEventHandler.handleReceiveChatEvent
 import com.google.gson.Gson
 import com.haroldadmin.cnradapter.NetworkResponse
 import kotlinx.coroutines.CoroutineScope
@@ -167,12 +167,12 @@ internal class ChatSessionManager(
             chatRepository.insertMessages(
                 listOf(
                     MessageEntity(
-                        msgType = MessageType.TEXT,
-                        msgId = socketEvent.eventId,
+                        messageType = MessageType.TEXT,
+                        messageId = socketEvent.eventId,
                         sessionId = sessionId,
                         role = MessageRole.USER,
                         createdAt = Utils.getCurrentUTCEpochMillis(),
-                        msgContent = Gson().toJson(socketEvent)
+                        messageContent = Gson().toJson(socketEvent)
                     )
                 )
             )
@@ -204,7 +204,7 @@ internal class ChatSessionManager(
 
     private fun handleStreamEvent(sessionId: String, event: StreamEvent) {
         coroutineScope.launch {
-            val msgType = when (event.contentType) {
+            val messageType = when (event.contentType) {
                 SocketContentType.SINGLE_SELECT -> MessageType.SINGLE_SELECT
                 SocketContentType.MULTI_SELECT -> MessageType.MULTI_SELECT
                 else -> MessageType.TEXT
@@ -212,12 +212,12 @@ internal class ChatSessionManager(
             chatRepository.insertMessages(
                 listOf(
                     MessageEntity(
-                        msgType = msgType,
-                        msgId = event.eventId,
+                        messageType = messageType,
+                        messageId = event.eventId,
                         sessionId = sessionId,
                         role = MessageRole.AI,
                         createdAt = Utils.getCurrentUTCEpochMillis(),
-                        msgContent = Gson().toJson(event)
+                        messageContent = Gson().toJson(event)
                     )
                 )
             )
@@ -261,14 +261,14 @@ internal class ChatSessionManager(
 
     private suspend fun refreshSessionToken(
         sessionId: String,
-        prevSessToken: String
+        previousSessionToken: String
     ): Result<RefreshTokenResponse> =
         withContext(Dispatchers.IO) {
             try {
                 val response =
                     sessionManagementRepository.refreshSessionToken(
                         sessionId = sessionId,
-                        prevSessToken = prevSessToken
+                        previousSessionToken = previousSessionToken
                     )
                 when (response) {
                     is NetworkResponse.Success -> {
@@ -339,7 +339,7 @@ internal class ChatSessionManager(
     private fun createSocketConnection(
         sessionId: String,
         sessionToken: String,
-        chatSessionConfig: IChatSessionConfig? = null
+        chatSessionConfig: SessionCallback? = null
     ) {
         socketManager = WebSocketManager.Companion.getInstance(
             url = buildSocketUrl(sessionId = sessionId),
@@ -360,7 +360,7 @@ internal class ChatSessionManager(
         socketManager?.connect()
     }
 
-    fun startSession(sessionId: String, chatSessionConfig: IChatSessionConfig? = null) {
+    fun startSession(sessionId: String, chatSessionConfig: SessionCallback? = null) {
         coroutineScope.launch {
             val chatSession = chatRepository.getSessionData(sessionId = sessionId).getOrNull()
             if (chatSession == null) {
@@ -381,7 +381,7 @@ internal class ChatSessionManager(
             checkSessionActive(sessionId = prevSessionId).onSuccess {
                 refreshSessionToken(
                     sessionId = prevSessionId,
-                    prevSessToken = prevSessionToken
+                    previousSessionToken = prevSessionToken
                 ).onSuccess {
                     val newSessionToken = it.sessionToken
                     if (newSessionToken.isNullOrBlank()) {
@@ -414,7 +414,7 @@ internal class ChatSessionManager(
         }
     }
 
-    fun startSession(userInfo: UserInfo, chatSessionConfig: IChatSessionConfig? = null) {
+    fun startSession(userInfo: UserInfo, chatSessionConfig: SessionCallback? = null) {
         coroutineScope.launch {
             createNewSession(userId = userInfo.userId).onSuccess {
                 val newSessionId = it.sessionId
@@ -450,7 +450,7 @@ internal class ChatSessionManager(
     fun sendNewQuery(
         toolUseId: String?,
         query: String,
-        responseHandler: IResponseStreamHandler
+        responseHandler: ResponseStreamCallback
     ): Boolean {
         val chatQuery = SendChatEvent(
             timeStamp = Utils.getCurrentUTCEpochMillis(),
@@ -495,7 +495,7 @@ internal class ChatSessionManager(
             )
             val eventJson = SocketUtils.sendEvent(socketEvent = event)
             if (eventJson.isNullOrBlank()) {
-                ChatInit.provideSpeechToTextData(
+                ChatSDK.provideSpeechToTextData(
                     result = Result.failure(exception = Exception("Error sending audio!"))
                 )
                 return
@@ -504,7 +504,7 @@ internal class ChatSessionManager(
             socketManager?.sendText(eventJson)
         } catch (e: Exception) {
             e.printStackTrace()
-            ChatInit.provideSpeechToTextData(
+            ChatSDK.provideSpeechToTextData(
                 result = Result.failure(exception = Exception("Error sending audio!"))
             )
             ChatLogger.d(TAG, e.message.toString())

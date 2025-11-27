@@ -1,6 +1,6 @@
 package com.eka.conversation.data.repositories
 
-import com.eka.conversation.client.ChatInit
+import com.eka.conversation.client.ChatSDK
 import com.eka.conversation.common.models.AuthConfiguration
 import com.eka.conversation.data.remote.api.ChatSessionService
 import com.eka.conversation.data.remote.models.requests.CreateSessionRequest
@@ -19,7 +19,7 @@ class SessionManagementRepositoryImpl(
 ) : SessionManagementRepository {
 
     val matrixService = EkaNetwork.creatorFor(
-        appId = ChatInit.getChatInitConfiguration().networkConfig.appId,
+        appId = ChatSDK.getChatConfiguration().networkConfig.appId,
         service = ChatSessionService.SERVICE_NAME,
     ).create(
         serviceClass = ChatSessionService::class.java,
@@ -63,12 +63,12 @@ class SessionManagementRepositoryImpl(
 
     override suspend fun refreshSessionToken(
         sessionId: String,
-        prevSessToken: String
+        previousSessionToken: String
     ): NetworkResponse<RefreshTokenResponse, RefreshTokenResponse> =
         withContext(Dispatchers.IO) {
             try {
                 val headers = baseHeaders.apply {
-                    put("x-sess-token", prevSessToken)
+                    put("x-sess-token", previousSessionToken)
                 }
                 val response = matrixService.refreshSessionToken(
                     headerMap = headers,

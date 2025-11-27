@@ -6,7 +6,7 @@ import com.eka.conversation.data.remote.socket.states.SocketConnectionState
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 
-interface IChatSessionConfig {
+interface SessionCallback {
     fun onSuccess(
         sessionId: String,
         connectionState: StateFlow<SocketConnectionState>,

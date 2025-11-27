@@ -16,7 +16,7 @@ interface ChatRepository {
     fun getSearchResult(query : String) : Flow<List<MessageEntity>>
     fun getSearchResultWithOwnerId(query: String, ownerId: String): Flow<List<MessageEntity>>
     fun getMessagesBySessionId(sessionId: String): Response<Flow<List<Message>>>
-    suspend fun getMessageById(msgId: String, sessionId: String): MessageEntity?
+    suspend fun getMessageById(messageId: String, sessionId: String): MessageEntity?
     suspend fun getLastMessagesOfEachSessionId() : Response<List<MessageEntity>>
 
     suspend fun getAllSession(ownerId: String?): Response<List<MessageEntity>>

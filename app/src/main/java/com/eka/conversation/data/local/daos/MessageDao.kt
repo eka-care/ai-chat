@@ -131,8 +131,8 @@ interface MessageDao {
     suspend fun getAllFirstMessagesOfEachSessionWithFilter(ownerId: String): List<MessageEntity>
 
     // Get a message by its local ID
-    @Query("SELECT * FROM ${Constants.MESSAGES_TABLE_NAME} WHERE msg_id = :msgId AND session_id = :sessionId")
-    fun getMessageById(msgId: String, sessionId: String): MessageEntity?
+    @Query("SELECT * FROM ${Constants.MESSAGES_TABLE_NAME} WHERE msg_id = :messageId AND session_id = :sessionId")
+    fun getMessageById(messageId: String, sessionId: String): MessageEntity?
 
     @Query("SELECT * FROM ${Constants.MESSAGES_TABLE_NAME}")
     fun getMessagesByContext(): List<MessageEntity>

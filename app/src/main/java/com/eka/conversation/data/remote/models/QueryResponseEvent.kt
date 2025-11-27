@@ -7,7 +7,7 @@ import com.google.gson.annotations.SerializedName
 @Keep
 data class QueryResponseEvent(
     @SerializedName("msg_id")
-    val msgId: Int?,
+    val messageId: Int?,
     @SerializedName("overwrite")
     val overwrite: Boolean?,
     @SerializedName("text")

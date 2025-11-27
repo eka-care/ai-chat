@@ -28,11 +28,11 @@ class RetrofitClient {
     fun init(baseUrl : String) {
         val builder = OkHttpClient.Builder()
 
-//        ChatInit.getChatInitConfiguration().networkConfiguration.interceptor?.let {
+//        ChatSDK.getChatConfiguration().networkConfiguration.interceptor?.let {
 //            builder.addInterceptor(it)
 //        }
 //
-//        ChatInit.getChatInitConfiguration().networkConfiguration.authenticator?.let {
+//        ChatSDK.getChatConfiguration().networkConfiguration.authenticator?.let {
 //            builder.authenticator(it)
 //        }
 

@@ -84,10 +84,11 @@ class ChatRepositoryImpl(
         }
     }
 
-    override suspend fun getMessageById(msgId: String, sessionId: String): MessageEntity? {
+    override suspend fun getMessageById(messageId: String, sessionId: String): MessageEntity? {
         return withContext(Dispatchers.IO) {
             try {
-                val response = chatDatabase.messageDao().getMessageById(msgId = msgId,sessionId = sessionId)
+                val response = chatDatabase.messageDao()
+                    .getMessageById(messageId = messageId, sessionId = sessionId)
                 response
             } catch (e : Exception) {
                 null

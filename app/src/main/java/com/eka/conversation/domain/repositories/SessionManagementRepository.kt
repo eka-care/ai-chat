@@ -10,6 +10,6 @@ interface SessionManagementRepository {
     suspend fun checkSessionStatus(sessionId: String): NetworkResponse<SessionStatusResponse, SessionStatusResponse>
     suspend fun refreshSessionToken(
         sessionId: String,
-        prevSessToken: String
+        previousSessionToken: String
     ): NetworkResponse<RefreshTokenResponse, RefreshTokenResponse>
 }

@@ -34,7 +34,7 @@ import com.google.gson.Gson
 data class MessageEntity(
     @PrimaryKey
     @ColumnInfo(name = "msg_id")
-    val msgId: String,
+    val messageId: String,
     @ColumnInfo(name = "session_id")
     val sessionId: String,
     @ColumnInfo(name = "role")
@@ -42,9 +42,9 @@ data class MessageEntity(
     @ColumnInfo(name = "created_at")
     val createdAt: Long,
     @ColumnInfo(name = "msg_type")
-    val msgType: MessageType = MessageType.TEXT,
+    val messageType: MessageType = MessageType.TEXT,
     @ColumnInfo(name = "content")
-    val msgContent: String,
+    val messageContent: String,
     @ColumnInfo(name = "owner_id", defaultValue = "owner_id_default")
     val ownerId: String? = "owner_id_default",
 )
@@ -53,20 +53,20 @@ data class MessageEntity(
 @Fts4(contentEntity = MessageEntity::class)
 @Entity(tableName = Constants.MESSAGES_FTS_TABLE_NAME)
 data class MessageFTSEntity(
-    @ColumnInfo(name = "msg_id") val msgId: String,
+    @ColumnInfo(name = "msg_id") val messageId: String,
     @ColumnInfo(name = "session_id") val sessionId : String,
-    @ColumnInfo(name = "content") val msgContent: String,
+    @ColumnInfo(name = "content") val messageContent: String,
 )
 
 fun MessageEntity.toMessageModel(): Message? {
     return if (role == MessageRole.AI) {
-        val socketEvent = SocketUtils.buildReceiveEvent(data = msgContent)
+        val socketEvent = SocketUtils.buildReceiveEvent(data = messageContent)
         when (socketEvent) {
             is ReceiveChatEvent -> {
-                when (msgType) {
+                when (messageType) {
                     MessageType.SINGLE_SELECT -> {
                         Message.SingleSelect(
-                            messageId = msgId,
+                            messageId = messageId,
                             chatId = sessionId,
                             updatedAt = createdAt,
                             toolUseId = socketEvent.data?.toolUseId ?: "",
@@ -76,7 +76,7 @@ fun MessageEntity.toMessageModel(): Message? {
 
                     MessageType.MULTI_SELECT -> {
                         Message.MultiSelect(
-                            messageId = msgId,
+                            messageId = messageId,
                             chatId = sessionId,
                             updatedAt = createdAt,
                             toolUseId = socketEvent.data?.toolUseId ?: "",
@@ -86,7 +86,7 @@ fun MessageEntity.toMessageModel(): Message? {
 
                     MessageType.TEXT -> {
                         Message.Text(
-                            messageId = msgId,
+                            messageId = messageId,
                             chatId = sessionId,
                             role = role,
                             updatedAt = createdAt,
@@ -98,7 +98,7 @@ fun MessageEntity.toMessageModel(): Message? {
 
             is StreamEvent -> {
                 Message.Text(
-                    messageId = msgId,
+                    messageId = messageId,
                     chatId = sessionId,
                     role = role,
                     updatedAt = createdAt,
@@ -111,9 +111,9 @@ fun MessageEntity.toMessageModel(): Message? {
             }
         }
     } else {
-        val event = Gson().fromJson(msgContent, SendChatEvent::class.java)
+        val event = Gson().fromJson(messageContent, SendChatEvent::class.java)
         return Message.Text(
-            messageId = msgId,
+            messageId = messageId,
             chatId = sessionId,
             role = role,
             updatedAt = createdAt,

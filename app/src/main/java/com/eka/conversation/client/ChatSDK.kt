@@ -1,13 +1,13 @@
 package com.eka.conversation.client
 
 import android.content.Context
-import com.eka.conversation.client.interfaces.IChatSessionConfig
-import com.eka.conversation.client.interfaces.IResponseStreamHandler
+import com.eka.conversation.client.interfaces.ResponseStreamCallback
+import com.eka.conversation.client.interfaces.SessionCallback
 import com.eka.conversation.client.models.ChatInfo
 import com.eka.conversation.client.models.Message
 import com.eka.conversation.common.ChatLogger
 import com.eka.conversation.common.Response
-import com.eka.conversation.common.models.ChatInitConfiguration
+import com.eka.conversation.common.models.ChatConfiguration
 import com.eka.conversation.common.models.SpeechToTextConfiguration
 import com.eka.conversation.common.models.UserInfo
 import com.eka.conversation.data.local.db.ChatDatabase
@@ -23,8 +23,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 
-object ChatInit {
-    private var configuration: ChatInitConfiguration? = null
+object ChatSDK {
+    private var configuration: ChatConfiguration? = null
     private var database: ChatDatabase? = null
     private var repository: ChatRepository? = null
     private var sessionRepository: SessionManagementRepository? = null
@@ -41,23 +41,23 @@ object ChatInit {
     }
 
     fun initialize(
-        chatInitConfiguration: ChatInitConfiguration,
+        chatConfiguration: ChatConfiguration,
         context: Context
     ) {
-        val auth = chatInitConfiguration.authConfiguration
+        val auth = chatConfiguration.authConfiguration
         require(auth.agentId.isNotBlank()) {
             throw IllegalStateException("Invalid auth configuration agentId is blank!")
         }
-        configuration = chatInitConfiguration
+        configuration = chatConfiguration
         try {
             EkaNetwork.init(
-                networkConfig = chatInitConfiguration.networkConfig
+                networkConfig = chatConfiguration.networkConfig
             )
             database = ChatDatabase.getDatabase(context = context.applicationContext)
             database?.let {
                 repository = ChatRepositoryImpl(chatDatabase = it)
                 sessionRepository = SessionManagementRepositoryImpl(
-                    authConfiguration = chatInitConfiguration.authConfiguration
+                    authConfiguration = chatConfiguration.authConfiguration
                 )
             }
         } catch (e: Exception) {
@@ -66,7 +66,7 @@ object ChatInit {
         ChatLogger.d("ChatSDK", "ChatSDK initialised")
     }
 
-    fun initialiseChatSessionManager() {
+    fun initializeSessionManager() {
         requireNotNull(sessionRepository) {
             throw IllegalStateException("ChatSDK not initialised!")
         }
@@ -76,7 +76,7 @@ object ChatInit {
         chatSessionManager?.cleanUp()
         chatSessionManager = null
         chatSessionManager = ChatSessionManager(
-            authConfiguration = getChatInitConfiguration().authConfiguration,
+            authConfiguration = getChatConfiguration().authConfiguration,
             sessionManagementRepository = sessionRepository!!,
             chatRepository = repository!!
         )
@@ -94,27 +94,27 @@ object ChatInit {
         )
     }
 
-    suspend fun getLastSessionData(): Result<ChatInfo>? {
+    suspend fun getLastSession(): Result<ChatInfo>? {
         return repository?.getLastSession()
     }
 
 
-    fun startSession(sessionId: String, chatSessionConfig: IChatSessionConfig) {
+    fun startSession(sessionId: String, callback: SessionCallback) {
         CoroutineScope(Dispatchers.IO).launch {
             val session = repository?.getSessionData(sessionId = sessionId)?.getOrNull()
             if (session == null) {
-                chatSessionConfig.onFailure(Exception("Session not found!"))
+                callback.onFailure(Exception("Session not found!"))
                 return@launch
             }
-            initialiseChatSessionManager()
+            initializeSessionManager()
             chatSessionManager?.startSession(
                 sessionId = sessionId,
-                chatSessionConfig = chatSessionConfig
+                chatSessionConfig = callback
             )
         }
     }
 
-    fun startSession(userInfo: UserInfo, chatSessionConfig: IChatSessionConfig) {
+    fun startSession(userInfo: UserInfo, callback: SessionCallback) {
         CoroutineScope(Dispatchers.IO).launch {
             require(userInfo.userId.isNotBlank()) {
                 throw IllegalStateException("Invalid user info userId is blank!")
@@ -122,32 +122,32 @@ object ChatInit {
             require(userInfo.businessId.isNotBlank()) {
                 throw IllegalStateException("Invalid user info businessId is blank!")
             }
-            initialiseChatSessionManager()
+            initializeSessionManager()
             chatSessionManager?.startSession(
                 userInfo = userInfo,
-                chatSessionConfig = chatSessionConfig
+                chatSessionConfig = callback
             )
         }
     }
 
-    fun sendNewQuery(toolUseId: String?, query: String, responseHandler: IResponseStreamHandler) {
+    fun sendQuery(toolUseId: String?, query: String, callback: ResponseStreamCallback) {
         requireNotNull(chatSessionManager) {
-            throw IllegalStateException("Start Session not called before sending new query!")
+            throw IllegalStateException("Start Session not called before sending query!")
         }
         chatSessionManager?.sendNewQuery(
             toolUseId = toolUseId,
             query = query,
-            responseHandler = responseHandler
+            responseHandler = callback
         )
     }
 
-    fun getMessagesBySessionId(sessionId: String): Response<Flow<List<Message>>>? {
+    fun getMessages(sessionId: String): Response<Flow<List<Message>>>? {
         return repository?.getMessagesBySessionId(sessionId)
     }
 
-    fun getChatInitConfiguration(): ChatInitConfiguration {
+    fun getChatConfiguration(): ChatConfiguration {
         requireNotNull(configuration) {
-            throw IllegalStateException("Chat Init configuration not initialized")
+            throw IllegalStateException("Chat configuration not initialized")
         }
         return configuration!!
     }
