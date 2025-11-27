@@ -39,7 +39,7 @@ class WebSocketManager(
     private val agentId: String
 ) {
     private val client = OkHttpClient.Builder()
-        .connectTimeout(10, TimeUnit.SECONDS)
+        .connectTimeout(30, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
         .writeTimeout(30, TimeUnit.SECONDS)
         .pingInterval(30, TimeUnit.SECONDS)
@@ -49,15 +49,7 @@ class WebSocketManager(
                     Log.v(TAG, message)
                 }
             })
-        ).addInterceptor { chain ->
-            val response = chain.proceed(chain.request())
-            Log.d(TAG, chain.request().toString())
-            Log.d(TAG, response.toString())
-            if (!response.isSuccessful) {
-                Log.d(TAG, "HTTP ${response.code}: ${response.body?.string()}")
-            }
-            response
-        }
+        )
         .build()
 
     private val _connectionState = MutableStateFlow<SocketConnectionState>(

@@ -79,18 +79,6 @@ android {
     }
 }
 
-//publishing {
-//    publications {
-//        create<MavenPublication>("release") {
-//            groupId = "com.eka.conversation"
-//            artifactId = "eka-conversation"
-//            version = "1.0.6"
-//
-//            artifact("../app/build/outputs/aar/app-release.aar")
-//        }
-//    }
-//}
-
 afterEvaluate {
     publishing {
         publications {
