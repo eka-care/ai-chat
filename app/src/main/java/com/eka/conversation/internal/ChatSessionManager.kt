@@ -2,6 +2,8 @@ package com.eka.conversation.internal
 
 import android.util.Base64
 import com.eka.conversation.client.ChatSDK
+import com.eka.conversation.client.events.SDKEventLogger
+import com.eka.conversation.client.events.SDKEventType
 import com.eka.conversation.client.interfaces.ResponseStreamCallback
 import com.eka.conversation.client.interfaces.SessionCallback
 import com.eka.conversation.common.ChatLogger
@@ -99,7 +101,7 @@ internal class ChatSessionManager(
         }
     }
 
-    private fun handleSocketEvent(socketMessage: SocketMessage) {
+    private suspend fun handleSocketEvent(socketMessage: SocketMessage) {
         when (socketMessage) {
             is SocketMessage.TextMessage -> {
                 val socketEvent =
@@ -113,7 +115,7 @@ internal class ChatSessionManager(
         }
     }
 
-    private fun storeSocketEventToDB(socketEvent: BaseSocketEvent?) {
+    private suspend fun storeSocketEventToDB(socketEvent: BaseSocketEvent?) {
         val sessionId = currentSessionId
         if (sessionId == null) {
             return
@@ -150,6 +152,11 @@ internal class ChatSessionManager(
 
             is ErrorEvent -> {
                 if (socketEvent.code == ErrorEventCode.SESSION_EXPIRED.stringValue) {
+                    SDKEventLogger.warning(SDKEventType.SESSION_MANAGEMENT) {
+                        put("event", "session_expired")
+                        put("sessionId", sessionId)
+                        put("code", socketEvent.code)
+                    }
                     handleEndOfStreamEvent(sessionId = sessionId)
                     startSession(sessionId = sessionId)
                 } else {
@@ -158,7 +165,7 @@ internal class ChatSessionManager(
                 }
                 ChatLogger.d(TAG, "ErrorEvent $socketEvent")
             }
-        }
+            }
     }
 
     private fun handleSendEvent(socketEvent: SendChatEvent) {
@@ -180,7 +187,7 @@ internal class ChatSessionManager(
         }
     }
 
-    private fun handleEndOfStreamEvent(sessionId: String) {
+    private suspend fun handleEndOfStreamEvent(sessionId: String) {
         val lastMessage = _responseStream.value
         lastMessage?.let {
             handleStreamEvent(sessionId = sessionId, event = lastMessage)
@@ -192,19 +199,19 @@ internal class ChatSessionManager(
     private fun handleStreamResponse(
         socketEvent: StreamEvent
     ) {
-        if (socketEvent.data.text.isNullOrBlank()) {
-            return
-        }
         val newResponseText = _responseStream.value?.data?.text ?: ""
         _responseStream.value = socketEvent.copy(
             data = socketEvent.data.copy(
-                text = newResponseText + socketEvent.data.text
+                text = newResponseText + (socketEvent.data.text ?: "")
             )
         )
     }
 
-    private fun handleStreamEvent(sessionId: String, event: StreamEvent) {
-        coroutineScope.launch {
+    private suspend fun handleStreamEvent(sessionId: String, event: StreamEvent) {
+        val message =
+            chatRepository.getMessageById(sessionId = sessionId, messageId = event.eventId)
+        if (message == null) {
+            ChatLogger.d(TAG, "Handle Stream Event New Message insertion")
             val messageType = when (event.contentType) {
                 SocketContentType.SINGLE_SELECT -> MessageType.SINGLE_SELECT
                 SocketContentType.MULTI_SELECT -> MessageType.MULTI_SELECT
@@ -222,26 +229,61 @@ internal class ChatSessionManager(
                     )
                 )
             )
+        } else {
+            ChatLogger.d(TAG, "Handle Stream Event Update Message insertion $message")
+            chatRepository.updateMessage(
+                message.copy(
+                    messageContent = Gson().toJson(event)
+                )
+            )
         }
     }
 
     private suspend fun createNewSession(userId: String): Result<CreateSessionResponse> =
         withContext(Dispatchers.IO) {
             try {
+                SDKEventLogger.info(SDKEventType.SESSION_MANAGEMENT) {
+                    put("event", "session_creating")
+                    put("userId", userId)
+                }
+
                 val response = sessionManagementRepository.createNewSession(userId = userId)
                 when (response) {
                     is NetworkResponse.Success -> {
                         ChatLogger.d(TAG, response.body.toString())
+
+                        SDKEventLogger.info(SDKEventType.SESSION_MANAGEMENT) {
+                            put("event", "session_created")
+                            put("sessionId", response.body.sessionId ?: "")
+                            put("userId", userId)
+                        }
+
                         return@withContext Result.success(response.body)
                     }
 
                     is NetworkResponse.NetworkError -> {
                         ChatLogger.d(TAG, response.error.toString())
+
+                        SDKEventLogger.error(SDKEventType.SESSION_MANAGEMENT) {
+                            put("event", "session_creation_failed")
+                            put("userId", userId)
+                            put("error", "Network Error")
+                            put("errorType", "NetworkError")
+                        }
+
                         return@withContext Result.failure(Exception("Network Error!"))
                     }
 
                     is NetworkResponse.ServerError -> {
                         ChatLogger.d(TAG, response.error.toString())
+
+                        SDKEventLogger.error(SDKEventType.SESSION_MANAGEMENT) {
+                            put("event", "session_creation_failed")
+                            put("userId", userId)
+                            put("error", response.body?.error?.msg ?: "User Not Found!")
+                            put("errorType", "ServerError")
+                        }
+
                         return@withContext Result.failure(
                             Exception(
                                 response.body?.error?.msg ?: "User Not Found!"
@@ -251,11 +293,27 @@ internal class ChatSessionManager(
 
                     else -> {
                         ChatLogger.d(TAG, response.toString())
+
+                        SDKEventLogger.error(SDKEventType.SESSION_MANAGEMENT) {
+                            put("event", "session_creation_failed")
+                            put("userId", userId)
+                            put("error", "Something went wrong!")
+                            put("errorType", "UnknownError")
+                        }
+
                         return@withContext Result.failure(Exception("Something went wrong!"))
                     }
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
+
+                SDKEventLogger.error(SDKEventType.SESSION_MANAGEMENT) {
+                    put("event", "session_creation_failed")
+                    put("userId", userId)
+                    put("error", e.message ?: "Unknown exception")
+                    put("errorType", e.javaClass.simpleName)
+                }
+
                 return@withContext Result.failure(e)
             }
         }
@@ -266,6 +324,11 @@ internal class ChatSessionManager(
     ): Result<RefreshTokenResponse> =
         withContext(Dispatchers.IO) {
             try {
+                SDKEventLogger.info(SDKEventType.SESSION_MANAGEMENT) {
+                    put("event", "session_token_refreshing")
+                    put("sessionId", sessionId)
+                }
+
                 val response =
                     sessionManagementRepository.refreshSessionToken(
                         sessionId = sessionId,
@@ -274,11 +337,25 @@ internal class ChatSessionManager(
                 when (response) {
                     is NetworkResponse.Success -> {
                         ChatLogger.d(TAG, response.body.toString())
+
+                        SDKEventLogger.info(SDKEventType.SESSION_MANAGEMENT) {
+                            put("event", "session_token_refreshed")
+                            put("sessionId", sessionId)
+                        }
+
                         return@withContext Result.success(response.body)
                     }
 
                     is NetworkResponse.ServerError -> {
                         ChatLogger.d(TAG, response.body.toString())
+
+                        SDKEventLogger.error(SDKEventType.SESSION_MANAGEMENT) {
+                            put("event", "session_token_refresh_failed")
+                            put("sessionId", sessionId)
+                            put("error", response.body?.error?.msg ?: "Session Not Found!")
+                            put("errorType", "ServerError")
+                        }
+
                         return@withContext Result.failure(
                             Exception(
                                 response.body?.error?.msg ?: "Session Not Found!"
@@ -288,16 +365,40 @@ internal class ChatSessionManager(
 
                     is NetworkResponse.NetworkError -> {
                         ChatLogger.d(TAG, response.error.toString())
+
+                        SDKEventLogger.error(SDKEventType.SESSION_MANAGEMENT) {
+                            put("event", "session_token_refresh_failed")
+                            put("sessionId", sessionId)
+                            put("error", "Network Error")
+                            put("errorType", "NetworkError")
+                        }
+
                         return@withContext Result.failure(Exception("Network Error!"))
                     }
 
                     else -> {
                         ChatLogger.d(TAG, response.toString())
+
+                        SDKEventLogger.error(SDKEventType.SESSION_MANAGEMENT) {
+                            put("event", "session_token_refresh_failed")
+                            put("sessionId", sessionId)
+                            put("error", "Something went wrong!")
+                            put("errorType", "UnknownError")
+                        }
+
                         return@withContext Result.failure(Exception("Something went wrong!"))
                     }
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
+
+                SDKEventLogger.error(SDKEventType.SESSION_MANAGEMENT) {
+                    put("event", "session_token_refresh_failed")
+                    put("sessionId", sessionId)
+                    put("error", e.message ?: "Unknown exception")
+                    put("errorType", e.javaClass.simpleName)
+                }
+
                 return@withContext Result.failure(e)
             }
         }
@@ -471,7 +572,9 @@ internal class ChatSessionManager(
         val response = socketManager?.sendText(stringQuery) ?: false
         if (response) {
             responseHandler.onSuccess(responseStream = getResponseStream())
-            storeSocketEventToDB(socketEvent = chatQuery)
+            coroutineScope.launch {
+                storeSocketEventToDB(socketEvent = chatQuery)
+            }
         } else {
             responseHandler.onFailure(Exception("Error sending query!"))
         }

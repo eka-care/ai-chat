@@ -34,7 +34,9 @@ fun StreamEvent.toMessageModel(sessionId: String): Message {
         chatId = sessionId,
         text = data.text ?: "",
         updatedAt = timeStamp ?: 0L,
-        role = MessageRole.AI
+        role = MessageRole.AI,
+        toolUseId = null,
+        choices = null
     )
 }
 

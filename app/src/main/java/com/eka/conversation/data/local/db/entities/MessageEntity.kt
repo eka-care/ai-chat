@@ -28,7 +28,7 @@ import com.google.gson.Gson
         )
     ],
     indices = [
-        androidx.room.Index(value = ["session_id"]),
+        androidx.room.Index(value = ["session_id"])
     ]
 )
 data class MessageEntity(
@@ -45,6 +45,10 @@ data class MessageEntity(
     val messageType: MessageType = MessageType.TEXT,
     @ColumnInfo(name = "content")
     val messageContent: String,
+    @ColumnInfo(name = "choices")
+    val choices: List<String>? = null,
+    @ColumnInfo(name = "tool_use_id")
+    val toolUseId: String? = null,
     @ColumnInfo(name = "owner_id", defaultValue = "owner_id_default")
     val ownerId: String? = "owner_id_default",
 )
@@ -69,8 +73,10 @@ fun MessageEntity.toMessageModel(): Message? {
                             messageId = messageId,
                             chatId = sessionId,
                             updatedAt = createdAt,
-                            toolUseId = socketEvent.data?.toolUseId ?: "",
-                            choices = socketEvent.data?.choices ?: emptyList()
+                            toolUseId = toolUseId,
+                            choices = choices ?: emptyList(),
+                            text = socketEvent.data?.text ?: "",
+                            role = MessageRole.AI
                         )
                     }
 
@@ -79,8 +85,10 @@ fun MessageEntity.toMessageModel(): Message? {
                             messageId = messageId,
                             chatId = sessionId,
                             updatedAt = createdAt,
-                            toolUseId = socketEvent.data?.toolUseId ?: "",
-                            choices = socketEvent.data?.choices ?: emptyList()
+                            toolUseId = toolUseId,
+                            choices = choices ?: emptyList(),
+                            text = socketEvent.data?.text ?: "",
+                            role = MessageRole.AI
                         )
                     }
 
@@ -90,20 +98,52 @@ fun MessageEntity.toMessageModel(): Message? {
                             chatId = sessionId,
                             role = role,
                             updatedAt = createdAt,
-                            text = socketEvent.data?.text ?: ""
+                            text = socketEvent.data?.text ?: "",
+                            toolUseId = toolUseId,
+                            choices = choices
                         )
                     }
                 }
             }
 
             is StreamEvent -> {
-                Message.Text(
-                    messageId = messageId,
-                    chatId = sessionId,
-                    role = role,
-                    updatedAt = createdAt,
-                    text = socketEvent.data.text ?: ""
-                )
+                when (messageType) {
+                    MessageType.SINGLE_SELECT -> {
+                        Message.SingleSelect(
+                            messageId = messageId,
+                            chatId = sessionId,
+                            updatedAt = createdAt,
+                            toolUseId = toolUseId,
+                            choices = choices ?: emptyList(),
+                            text = socketEvent.data.text ?: "",
+                            role = MessageRole.AI
+                        )
+                    }
+
+                    MessageType.MULTI_SELECT -> {
+                        Message.MultiSelect(
+                            messageId = messageId,
+                            chatId = sessionId,
+                            updatedAt = createdAt,
+                            toolUseId = toolUseId ?: "",
+                            choices = choices ?: emptyList(),
+                            text = socketEvent.data.text ?: "",
+                            role = MessageRole.AI
+                        )
+                    }
+
+                    MessageType.TEXT -> {
+                        Message.Text(
+                            messageId = messageId,
+                            chatId = sessionId,
+                            role = role,
+                            updatedAt = createdAt,
+                            text = socketEvent.data.text ?: "",
+                            toolUseId = toolUseId,
+                            choices = choices
+                        )
+                    }
+                }
             }
 
             else -> {
@@ -117,7 +157,9 @@ fun MessageEntity.toMessageModel(): Message? {
             chatId = sessionId,
             role = role,
             updatedAt = createdAt,
-            text = event.data.text ?: ""
+            text = event.data.text ?: "",
+            toolUseId = toolUseId,
+            choices = null
         )
     }
 }

@@ -1,6 +1,9 @@
 package com.eka.conversation.client
 
 import android.content.Context
+import com.eka.conversation.client.events.SDKEventListener
+import com.eka.conversation.client.events.SDKEventLogger
+import com.eka.conversation.client.events.SDKEventType
 import com.eka.conversation.client.interfaces.ResponseStreamCallback
 import com.eka.conversation.client.interfaces.SessionCallback
 import com.eka.conversation.client.models.ChatInfo
@@ -46,6 +49,9 @@ object ChatSDK {
     ) {
         val auth = chatConfiguration.authConfiguration
         require(auth.agentId.isNotBlank()) {
+            SDKEventLogger.error(SDKEventType.SDK) {
+                put("error", "Invalid auth configuration agentId is blank!")
+            }
             throw IllegalStateException("Invalid auth configuration agentId is blank!")
         }
         configuration = chatConfiguration
@@ -60,17 +66,32 @@ object ChatSDK {
                     authConfiguration = chatConfiguration.authConfiguration
                 )
             }
+            ChatLogger.d("ChatSDK", "ChatSDK initialised")
+            SDKEventLogger.info(SDKEventType.SDK) {
+                put("event", "sdk_initialized")
+                put("agentId", auth.agentId)
+            }
         } catch (e: Exception) {
             ChatLogger.e("ChatSDK", "ChatSDK initialisation failed", e)
+            SDKEventLogger.error(SDKEventType.SDK) {
+                put("event", "sdk_initialization_failed")
+                put("error", e.message ?: "Unknown error")
+                put("errorType", e.javaClass.simpleName)
+            }
         }
-        ChatLogger.d("ChatSDK", "ChatSDK initialised")
     }
 
     fun initializeSessionManager() {
         requireNotNull(sessionRepository) {
+            SDKEventLogger.error(SDKEventType.SESSION_MANAGEMENT) {
+                put("error", "Session repository not initialised!")
+            }
             throw IllegalStateException("ChatSDK not initialised!")
         }
         requireNotNull(repository) {
+            SDKEventLogger.error(SDKEventType.SESSION_MANAGEMENT) {
+                put("error", "chat_repository_not_initialised")
+            }
             throw IllegalStateException("ChatSDK not initialised!")
         }
         chatSessionManager?.cleanUp()
@@ -117,9 +138,15 @@ object ChatSDK {
     fun startSession(userInfo: UserInfo, callback: SessionCallback) {
         CoroutineScope(Dispatchers.IO).launch {
             require(userInfo.userId.isNotBlank()) {
+                SDKEventLogger.error(SDKEventType.SESSION_MANAGEMENT) {
+                    put("error", "Invalid user info userId is blank!")
+                }
                 throw IllegalStateException("Invalid user info userId is blank!")
             }
             require(userInfo.businessId.isNotBlank()) {
+                SDKEventLogger.error(SDKEventType.SESSION_MANAGEMENT) {
+                    put("error", "Invalid user info businessId is blank!")
+                }
                 throw IllegalStateException("Invalid user info businessId is blank!")
             }
             initializeSessionManager()
@@ -132,6 +159,9 @@ object ChatSDK {
 
     fun sendQuery(toolUseId: String?, query: String, callback: ResponseStreamCallback) {
         requireNotNull(chatSessionManager) {
+            SDKEventLogger.error(SDKEventType.MESSAGE) {
+                put("error", "Start Session not called before sending query!")
+            }
             throw IllegalStateException("Start Session not called before sending query!")
         }
         chatSessionManager?.sendNewQuery(
@@ -150,5 +180,36 @@ object ChatSDK {
             throw IllegalStateException("Chat configuration not initialized")
         }
         return configuration!!
+    }
+
+    /**
+     * Add an event listener to receive SDK events
+     * @param listener The listener that will receive SDK events
+     */
+    fun addEventListener(listener: SDKEventListener) {
+        SDKEventLogger.addListener(listener)
+    }
+
+    /**
+     * Remove an event listener
+     * @param listener The listener to remove
+     */
+    fun removeEventListener(listener: SDKEventListener) {
+        SDKEventLogger.removeListener(listener)
+    }
+
+    /**
+     * Remove all event listeners
+     */
+    fun removeAllEventListeners() {
+        SDKEventLogger.removeAllListeners()
+    }
+
+    /**
+     * Enable or disable SDK event logging
+     * @param enabled true to enable, false to disable
+     */
+    fun setEventLoggingEnabled(enabled: Boolean) {
+        SDKEventLogger.setEnabled(enabled)
     }
 }
