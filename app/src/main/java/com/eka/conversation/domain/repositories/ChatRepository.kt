@@ -1,11 +1,12 @@
 package com.eka.conversation.domain.repositories
 
+import com.eka.conversation.client.models.ChatInfo
+import com.eka.conversation.client.models.Message
 import com.eka.conversation.common.Response
-import com.eka.conversation.common.models.NetworkConfiguration
+import com.eka.conversation.common.models.UserInfo
+import com.eka.conversation.data.local.db.entities.ChatSession
 import com.eka.conversation.data.local.db.entities.MessageEntity
 import com.eka.conversation.data.local.db.entities.MessageFile
-import com.eka.conversation.data.remote.models.QueryPostRequest
-import com.eka.conversation.data.remote.models.QueryResponseEvent
 import kotlinx.coroutines.flow.Flow
 
 interface ChatRepository {
@@ -15,8 +16,8 @@ interface ChatRepository {
     suspend fun getLastSessionId() : Flow<String>
     fun getSearchResult(query : String) : Flow<List<MessageEntity>>
     fun getSearchResultWithOwnerId(query: String, ownerId: String): Flow<List<MessageEntity>>
-    fun getMessagesBySessionId(sessionId : String) : Response<Flow<List<MessageEntity>>>
-    suspend fun getMessageById(msgId : Int,sessionId: String) : Response<Flow<MessageEntity>>
+    fun getMessagesBySessionId(sessionId: String): Response<Flow<List<Message>>>
+    suspend fun getMessageById(messageId: String, sessionId: String): MessageEntity?
     suspend fun getLastMessagesOfEachSessionId() : Response<List<MessageEntity>>
 
     suspend fun getAllSession(ownerId: String?): Response<List<MessageEntity>>
@@ -32,11 +33,8 @@ interface ChatRepository {
     suspend fun getFileById(fileId : Int) : Response<MessageFile>
     suspend fun getSessionIdBySessionIdentity(sessionIdentity: String): Response<String?>
 
-    //remote
-    suspend fun queryPost(queryPostRequest: QueryPostRequest): Flow<QueryResponseEvent>
+    suspend fun getSessionData(sessionId: String): Result<ChatSession>
+    suspend fun getLastSession(userInfo: UserInfo?): Result<ChatInfo>
 
-    suspend fun askNewQuery(
-        messageEntity: MessageEntity,
-        networkConfiguration: NetworkConfiguration
-    ): Flow<QueryResponseEvent>
+    suspend fun insertChatSession(session: ChatSession): Result<Boolean>
 }

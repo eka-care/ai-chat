@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
 //    id("com.android.application")
     id("com.android.library")
@@ -6,13 +8,15 @@ plugins {
     alias(libs.plugins.jetbrains.kotlin.android)
 }
 
+val config =
+    Properties().apply { load(project.rootProject.file("config.properties").inputStream()) }
+
 android {
     namespace = "com.eka.conversation"
-    compileSdk = 34
+    compileSdk = 36
 
     defaultConfig {
-        minSdk = 23
-        targetSdk = 34
+        minSdk = 24
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -28,6 +32,22 @@ android {
                 "proguard-rules.pro"
             )
             buildConfigField("boolean", "IS_DEBUG", "true")
+            buildConfigField("String", "MATRIX_URL", "\"${config["MATRIX_URL"]}\"")
+            buildConfigField("String", "MATRIX_URL_DEV", "\"${config["MATRIX_URL_DEV"]}\"")
+            buildConfigField("String", "MATRIX_SOCKET_PROD", "\"${config["MATRIX_SOCKET_PROD"]}\"")
+            buildConfigField("String", "MATRIX_SOCKET_DEV", "\"${config["MATRIX_SOCKET_DEV"]}\"")
+        }
+        create("staging") {
+            isMinifyEnabled = false
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+            buildConfigField("boolean", "IS_DEBUG", "false")
+            buildConfigField("String", "MATRIX_URL", "\"${config["MATRIX_URL"]}\"")
+            buildConfigField("String", "MATRIX_URL_DEV", "\"${config["MATRIX_URL_DEV"]}\"")
+            buildConfigField("String", "MATRIX_SOCKET_PROD", "\"${config["MATRIX_SOCKET_PROD"]}\"")
+            buildConfigField("String", "MATRIX_SOCKET_DEV", "\"${config["MATRIX_SOCKET_DEV"]}\"")
         }
         release {
             isMinifyEnabled = false
@@ -36,6 +56,10 @@ android {
                 "proguard-rules.pro"
             )
             buildConfigField("boolean", "IS_DEBUG", "false")
+            buildConfigField("String", "MATRIX_URL", "\"${config["MATRIX_URL"]}\"")
+            buildConfigField("String", "MATRIX_URL_DEV", "\"${config["MATRIX_URL_DEV"]}\"")
+            buildConfigField("String", "MATRIX_SOCKET_PROD", "\"${config["MATRIX_SOCKET_PROD"]}\"")
+            buildConfigField("String", "MATRIX_SOCKET_DEV", "\"${config["MATRIX_SOCKET_DEV"]}\"")
         }
     }
     kotlin {
@@ -55,18 +79,6 @@ android {
     }
 }
 
-//publishing {
-//    publications {
-//        create<MavenPublication>("release") {
-//            groupId = "com.eka.conversation"
-//            artifactId = "eka-conversation"
-//            version = "1.0.6"
-//
-//            artifact("../app/build/outputs/aar/app-release.aar")
-//        }
-//    }
-//}
-
 afterEvaluate {
     publishing {
         publications {
@@ -79,6 +91,9 @@ afterEvaluate {
             }
         }
     }
+    tasks.named("publishReleasePublicationToMavenLocal") {
+        dependsOn(tasks.named("bundleReleaseAar"))
+    }
 }
 
 dependencies {
@@ -89,6 +104,11 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation(libs.androidx.material)
     testImplementation(libs.junit)
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
+    testImplementation("io.mockk:mockk:1.13.8")
+    testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
+    testImplementation("app.cash.turbine:turbine:1.0.0")
+    testImplementation("org.robolectric:robolectric:4.11.1")
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.ui.test.junit4)
@@ -103,4 +123,5 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation(libs.compose.markdown)
     implementation("com.github.mrmike:ok2curl:0.8.0")
+    api(libs.eka.network.android)
 }

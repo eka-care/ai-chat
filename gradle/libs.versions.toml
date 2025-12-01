@@ -1,8 +1,9 @@
 [versions]
-agp = "8.4.0"
+agp = "8.10.0"
 animation = "1.4.0"
 composeMarkdown = "0.5.4"
 converterGson = "2.9.0"
+ekaNetworkAndroid = "2.0.2"
 gson = "2.10.1"
 kotlin = "1.9.0"
 coreKtx = "1.9.0"
@@ -29,6 +30,7 @@ androidx-material = { module = "androidx.compose.material:material", version.ref
 androidx-navigation-compose = { module = "androidx.navigation:navigation-compose", version.ref = "navigationCompose" }
 compose-markdown = { module = "com.github.jeziellago:compose-markdown", version.ref = "composeMarkdown" }
 converter-gson = { module = "com.squareup.retrofit2:converter-gson", version.ref = "converterGson" }
+eka-network-android = { module = "com.github.eka-care:eka-network-android", version.ref = "ekaNetworkAndroid" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }

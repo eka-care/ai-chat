@@ -3,56 +3,53 @@ package com.eka.conversation.data.local.db.entities
 import androidx.annotation.Keep
 import androidx.room.ColumnInfo
 import androidx.room.Entity
+import androidx.room.ForeignKey
 import androidx.room.Fts4
+import androidx.room.PrimaryKey
+import com.eka.conversation.client.models.Message
 import com.eka.conversation.common.Constants
 import com.eka.conversation.data.local.db.entities.models.MessageRole
-import com.google.gson.annotations.SerializedName
+import com.eka.conversation.data.local.db.entities.models.MessageType
+import com.eka.conversation.data.remote.socket.SocketEventSerializer
+import com.eka.conversation.data.remote.socket.events.receive.ReceiveChatEvent
+import com.eka.conversation.data.remote.socket.events.receive.StreamEvent
+import com.eka.conversation.data.remote.socket.events.send.SendChatEvent
+import com.google.gson.Gson
 
 @Keep
-@Entity(tableName = Constants.MESSAGES_TABLE_NAME,
-    primaryKeys = ["msg_id","session_id"])
+@Entity(
+    tableName = Constants.MESSAGES_TABLE_NAME,
+    foreignKeys = [
+        ForeignKey(
+            entity = ChatSession::class,
+            parentColumns = ["session_id"],
+            childColumns = ["session_id"],
+            onDelete = ForeignKey.CASCADE
+        )
+    ],
+    indices = [
+        androidx.room.Index(value = ["session_id"])
+    ]
+)
 data class MessageEntity(
+    @PrimaryKey
     @ColumnInfo(name = "msg_id")
-    @SerializedName("msg_id")
-    val msgId: Int,
+    val messageId: String,
     @ColumnInfo(name = "session_id")
-    @SerializedName("session_id")
     val sessionId: String,
-    @ColumnInfo(name = "session_identity")
-    @SerializedName("session_identity")
-    val sessionIdentity: String? = null,
     @ColumnInfo(name = "role")
-    @SerializedName("role")
     val role: MessageRole,
-    @ColumnInfo(name = "message_files")
-    @SerializedName("message_files")
-    val messageFiles: List<String>? = null,
-    @ColumnInfo(name = "message_text")
-    @SerializedName("message_text")
-    val messageText: String? = null,
-    @ColumnInfo(name = "message_html_text")
-    @SerializedName("message_html_text")
-    val htmlString: String? = null,
     @ColumnInfo(name = "created_at")
-    @SerializedName("created_at")
     val createdAt: Long,
-    @ColumnInfo(name = "chat_context")
-    @SerializedName("chat_context")
-    val chatContext: String? = null,
-    @ColumnInfo(name = "chat_sub_context")
-    @SerializedName("chat_sub_context")
-    val chatSubContext: String? = null,
-    @ColumnInfo(name = "chat_session_config")
-    @SerializedName("chat_session_config")
-    val chatSessionConfig: String? = null,
     @ColumnInfo(name = "msg_type")
-    @SerializedName("msg_type")
-    val msgType: String = "TEXT",
-    @ColumnInfo(
-        name = "owner_id",
-        defaultValue = "owner_id_default"
-    )
-    @SerializedName("owner_id")
+    val messageType: MessageType = MessageType.TEXT,
+    @ColumnInfo(name = "content")
+    val messageContent: String,
+    @ColumnInfo(name = "choices")
+    val choices: List<String>? = null,
+    @ColumnInfo(name = "tool_use_id")
+    val toolUseId: String? = null,
+    @ColumnInfo(name = "owner_id", defaultValue = "owner_id_default")
     val ownerId: String? = "owner_id_default",
 )
 
@@ -60,11 +57,110 @@ data class MessageEntity(
 @Fts4(contentEntity = MessageEntity::class)
 @Entity(tableName = Constants.MESSAGES_FTS_TABLE_NAME)
 data class MessageFTSEntity(
-    @ColumnInfo(name = "msg_id") val msgId : Int,
+    @ColumnInfo(name = "msg_id") val messageId: String,
     @ColumnInfo(name = "session_id") val sessionId : String,
-    @ColumnInfo(name = "message_text") val messageText: String,
-    @ColumnInfo(name = "chat_context") val chatContext: String? = null,
-    @ColumnInfo(name = "chat_sub_context") val chatSubContext: String? = null,
+    @ColumnInfo(name = "content") val messageContent: String,
 )
 
+fun MessageEntity.toMessageModel(): Message? {
+    return if (role == MessageRole.AI) {
+        val socketEvent = SocketEventSerializer.deserializeReceivedEvent(data = messageContent)
+        when (socketEvent) {
+            is ReceiveChatEvent -> {
+                when (messageType) {
+                    MessageType.SINGLE_SELECT -> {
+                        Message.SingleSelect(
+                            messageId = messageId,
+                            chatId = sessionId,
+                            updatedAt = createdAt,
+                            toolUseId = toolUseId,
+                            choices = choices ?: emptyList(),
+                            text = socketEvent.data?.text ?: "",
+                            role = MessageRole.AI
+                        )
+                    }
+
+                    MessageType.MULTI_SELECT -> {
+                        Message.MultiSelect(
+                            messageId = messageId,
+                            chatId = sessionId,
+                            updatedAt = createdAt,
+                            toolUseId = toolUseId,
+                            choices = choices ?: emptyList(),
+                            text = socketEvent.data?.text ?: "",
+                            role = MessageRole.AI
+                        )
+                    }
+
+                    MessageType.TEXT -> {
+                        Message.Text(
+                            messageId = messageId,
+                            chatId = sessionId,
+                            role = role,
+                            updatedAt = createdAt,
+                            text = socketEvent.data?.text ?: "",
+                            toolUseId = toolUseId,
+                            choices = choices
+                        )
+                    }
+                }
+            }
+
+            is StreamEvent -> {
+                when (messageType) {
+                    MessageType.SINGLE_SELECT -> {
+                        Message.SingleSelect(
+                            messageId = messageId,
+                            chatId = sessionId,
+                            updatedAt = createdAt,
+                            toolUseId = toolUseId,
+                            choices = choices ?: emptyList(),
+                            text = socketEvent.data.text ?: "",
+                            role = MessageRole.AI
+                        )
+                    }
+
+                    MessageType.MULTI_SELECT -> {
+                        Message.MultiSelect(
+                            messageId = messageId,
+                            chatId = sessionId,
+                            updatedAt = createdAt,
+                            toolUseId = toolUseId ?: "",
+                            choices = choices ?: emptyList(),
+                            text = socketEvent.data.text ?: "",
+                            role = MessageRole.AI
+                        )
+                    }
+
+                    MessageType.TEXT -> {
+                        Message.Text(
+                            messageId = messageId,
+                            chatId = sessionId,
+                            role = role,
+                            updatedAt = createdAt,
+                            text = socketEvent.data.text ?: "",
+                            toolUseId = toolUseId,
+                            choices = choices
+                        )
+                    }
+                }
+            }
+
+            else -> {
+                null
+            }
+        }
+    } else {
+        val event = Gson().fromJson(messageContent, SendChatEvent::class.java)
+        return Message.Text(
+            messageId = messageId,
+            chatId = sessionId,
+            role = role,
+            updatedAt = createdAt,
+            text = event.data.text ?: "",
+            toolUseId = toolUseId,
+            choices = null
+        )
+    }
+}
 

@@ -6,7 +6,9 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
 import androidx.room.Update
+import androidx.room.Upsert
 import com.eka.conversation.common.Constants
+import com.eka.conversation.data.local.db.entities.ChatSession
 import com.eka.conversation.data.local.db.entities.MessageEntity
 import kotlinx.coroutines.flow.Flow
 
@@ -31,12 +33,12 @@ interface MessageDao {
     @Query("SELECT session_id FROM ${Constants.MESSAGES_TABLE_NAME} ORDER BY created_at DESC LIMIT 1")
     fun getLastSessionId() : Flow<String>
 
-    @Query("SELECT session_id FROM ${Constants.MESSAGES_TABLE_NAME} WHERE session_identity = :sessionIdentity LIMIT 1")
-    suspend fun getSessionIdBySessionIdentity(sessionIdentity: String): String?
+    @Query("SELECT session_id FROM ${Constants.MESSAGES_TABLE_NAME} LIMIT 1")
+    suspend fun getSessionIdBySessionIdentity(): String?
 
     @Query("""
         SELECT * FROM ${Constants.MESSAGES_TABLE_NAME} WHERE (msg_id,session_id) IN (
-            SELECT msg_id,session_id FROM ${Constants.MESSAGES_FTS_TABLE_NAME} WHERE message_text MATCH :query or chat_context MATCH :query
+            SELECT msg_id,session_id FROM ${Constants.MESSAGES_FTS_TABLE_NAME} WHERE content MATCH :query MATCH :query
         )
     """)
     fun searchMessages(query: String): Flow<List<MessageEntity>>
@@ -44,7 +46,7 @@ interface MessageDao {
     @Query(
         """
         SELECT * FROM ${Constants.MESSAGES_TABLE_NAME} WHERE (msg_id,session_id) IN (
-            SELECT msg_id,session_id FROM ${Constants.MESSAGES_FTS_TABLE_NAME} WHERE message_text MATCH :query or chat_context MATCH :query
+            SELECT msg_id,session_id FROM ${Constants.MESSAGES_FTS_TABLE_NAME} WHERE content MATCH :query MATCH :query
         ) AND owner_id = :ownerId
     """
     )
@@ -129,11 +131,11 @@ interface MessageDao {
     suspend fun getAllFirstMessagesOfEachSessionWithFilter(ownerId: String): List<MessageEntity>
 
     // Get a message by its local ID
-    @Query("SELECT * FROM ${Constants.MESSAGES_TABLE_NAME} WHERE msg_id = :msgId AND session_id = :sessionId")
-    fun getMessageById(msgId : Int, sessionId: String): Flow<MessageEntity>
+    @Query("SELECT * FROM ${Constants.MESSAGES_TABLE_NAME} WHERE msg_id = :messageId AND session_id = :sessionId")
+    fun getMessageById(messageId: String, sessionId: String): MessageEntity?
 
-    @Query("SELECT * FROM ${Constants.MESSAGES_TABLE_NAME} WHERE chat_context = :context")
-    fun getMessagesByContext(context: String): List<MessageEntity>
+    @Query("SELECT * FROM ${Constants.MESSAGES_TABLE_NAME}")
+    fun getMessagesByContext(): List<MessageEntity>
 
     // Get messages by session id
     @Query("SELECT * FROM ${Constants.MESSAGES_TABLE_NAME} WHERE session_id = :sessionId ORDER BY created_at ASC")
@@ -142,11 +144,15 @@ interface MessageDao {
     @Query("""UPDATE ${Constants.MESSAGES_TABLE_NAME} SET owner_id = :newOwnerId WHERE owner_id = "owner_id_default" """)
     fun updateAllMessagesWithNewOwnerId(newOwnerId: String)
 
-    // Delete all messages
-    @Query("DELETE FROM ${Constants.MESSAGES_TABLE_NAME}")
-    suspend fun deleteAllMessages(): Int
+    @Query("SELECT * FROM ${Constants.CHAT_SESSION} WHERE session_id = :sessionId")
+    fun getChatSessionById(sessionId: String): ChatSession
 
-    // Delete all messages by session id
-    @Query("DELETE FROM ${Constants.MESSAGES_TABLE_NAME} WHERE session_id = :sessionId")
-    suspend fun deleteMessagesBySessionId(sessionId: String): Int
+    @Query("SELECT * FROM ${Constants.CHAT_SESSION} WHERE owner_id = :ownerId AND business_id = :businessId ORDER BY updated_at DESC LIMIT 1 ")
+    fun getLastSessionData(ownerId: String, businessId: String): ChatSession?
+
+    @Query("SELECT * FROM ${Constants.CHAT_SESSION} ORDER BY updated_at DESC LIMIT 1 ")
+    fun getLastSession(): ChatSession?
+
+    @Upsert
+    fun insertChatSession(chatSession: ChatSession)
 }

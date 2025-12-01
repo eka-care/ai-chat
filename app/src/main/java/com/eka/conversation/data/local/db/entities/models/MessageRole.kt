@@ -6,8 +6,8 @@ import com.google.gson.annotations.SerializedName
 @Keep
 enum class MessageRole(val role : String) {
     @SerializedName("ai") AI(role = "ai"),
-    @SerializedName("user") USER(role = "user"),
-    @SerializedName("custom") CUSTOM(role = "");
+    @SerializedName("user")
+    USER(role = "user");
 
     companion object {
         fun fromRoleName(name: String): MessageRole? {

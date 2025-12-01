@@ -1,36 +1,30 @@
 package com.eka.conversation.data.repositories
 
-import android.util.Log
-import com.eka.conversation.ChatInit
+import com.eka.conversation.client.models.ChatInfo
+import com.eka.conversation.client.models.Message
 import com.eka.conversation.common.Response
-import com.eka.conversation.common.Utils
-import com.eka.conversation.common.models.NetworkConfiguration
+import com.eka.conversation.common.models.UserInfo
 import com.eka.conversation.data.local.db.ChatDatabase
+import com.eka.conversation.data.local.db.entities.ChatSession
 import com.eka.conversation.data.local.db.entities.MessageEntity
 import com.eka.conversation.data.local.db.entities.MessageFile
-import com.eka.conversation.data.local.db.entities.models.MessageRole
-import com.eka.conversation.data.remote.api.RetrofitClient
-import com.eka.conversation.data.remote.models.PostMessage
-import com.eka.conversation.data.remote.models.QueryPostBody
-import com.eka.conversation.data.remote.models.QueryPostRequest
-import com.eka.conversation.data.remote.models.QueryResponseEvent
+import com.eka.conversation.data.local.db.entities.toChatInfo
+import com.eka.conversation.data.local.db.entities.toMessageModel
 import com.eka.conversation.domain.repositories.ChatRepository
-import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 
 class ChatRepositoryImpl(
-    private val chatDatabase : ChatDatabase
+    private val chatDatabase: ChatDatabase
 ) : ChatRepository {
     override suspend fun insertMessages(messages: List<MessageEntity>) {
         withContext(Dispatchers.IO) {
             try {
                 chatDatabase.messageDao().insertMessages(messages = messages)
-            }
-            catch (_ : Exception) {
+            } catch (_: Exception) {
             }
         }
     }
@@ -39,8 +33,7 @@ class ChatRepositoryImpl(
         withContext(Dispatchers.IO) {
             try {
                 chatDatabase.messageDao().updateMessage(message = message)
-            }
-            catch (_ : Exception) {
+            } catch (_: Exception) {
             }
         }
     }
@@ -50,8 +43,8 @@ class ChatRepositoryImpl(
             try {
                 val response = chatDatabase.messageDao().getLastSessionId()
                 response
-            } catch (_ : Exception) {
-                flow{}
+            } catch (_: Exception) {
+                flow {}
             }
         }
     }
@@ -75,31 +68,29 @@ class ChatRepositoryImpl(
             val response = chatDatabase.messageDao()
                 .searchMessagesWithOwnerId(query = buildQuery, ownerId = ownerId)
             return response
-        } catch (_ : Exception) {
-            return flow{}
+        } catch (_: Exception) {
+            return flow {}
         }
     }
 
-    override fun getMessagesBySessionId(sessionId: String): Response<Flow<List<MessageEntity>>> {
+    override fun getMessagesBySessionId(sessionId: String): Response<Flow<List<Message>>> {
         return try {
             val response = chatDatabase.messageDao().getMessagesBySessionId(sessionId = sessionId)
+                .map { messageList -> messageList.mapNotNull { message -> message.toMessageModel() } }
             Response.Success(data = response)
-        } catch (e : Exception) {
+        } catch (e: Exception) {
             Response.Error(message = e.message.toString())
         }
     }
 
-    override suspend fun getMessageById(msgId: Int, sessionId: String): Response<Flow<MessageEntity>> {
+    override suspend fun getMessageById(messageId: String, sessionId: String): MessageEntity? {
         return withContext(Dispatchers.IO) {
             try {
-                val response = chatDatabase.messageDao().getMessageById(msgId = msgId,sessionId = sessionId)
-                if(response == null) {
-                    Response.Error("Something went wrong!")
-                } else {
-                    Response.Success(data = response)
-                }
-            } catch (e : Exception) {
-                Response.Error(message = e.message.toString())
+                val response = chatDatabase.messageDao()
+                    .getMessageById(messageId = messageId, sessionId = sessionId)
+                response
+            } catch (e: Exception) {
+                null
             }
         }
     }
@@ -107,8 +98,8 @@ class ChatRepositoryImpl(
     override suspend fun getLastMessagesOfEachSessionId(): Response<List<MessageEntity>> {
         return withContext(Dispatchers.IO) {
             try {
-                val res = chatDatabase.messageDao().getAllSession(null)
-                Response.Success(data = res)
+                val result = chatDatabase.messageDao().getAllSession(null)
+                Response.Success(data = result)
             } catch (e: Exception) {
                 Response.Error(message = e.message.toString())
             }
@@ -118,9 +109,9 @@ class ChatRepositoryImpl(
     override suspend fun getAllSession(ownerId: String?): Response<List<MessageEntity>> {
         return withContext(Dispatchers.IO) {
             try {
-                val res = chatDatabase.messageDao().getAllSession(ownerId)
-                Response.Success(data = res)
-            } catch (e : Exception) {
+                val result = chatDatabase.messageDao().getAllSession(ownerId)
+                Response.Success(data = result)
+            } catch (e: Exception) {
                 Response.Error(message = e.message.toString())
             }
         }
@@ -129,8 +120,8 @@ class ChatRepositoryImpl(
     override suspend fun getMessagesByContext(chatContext: String): Response<List<MessageEntity>> {
         return withContext(Dispatchers.IO) {
             try {
-                val res = chatDatabase.messageDao().getMessagesByContext(context = chatContext)
-                Response.Success(data = res)
+                val result = chatDatabase.messageDao().getMessagesByContext()
+                Response.Success(data = result)
             } catch (e: Exception) {
                 Response.Error(message = e.message.toString())
             }
@@ -149,9 +140,9 @@ class ChatRepositoryImpl(
     override suspend fun getLastMessagesOfEachSessionIdFilterByOwnerId(ownerId: String): Response<List<MessageEntity>> {
         return withContext(Dispatchers.IO) {
             try {
-                val res = chatDatabase.messageDao()
+                val result = chatDatabase.messageDao()
                     .getAllLastMessagesOfEachSessionWithFilter(ownerId = ownerId)
-                Response.Success(data = res)
+                Response.Success(data = result)
             } catch (e: Exception) {
                 Response.Error(message = e.message.toString())
             }
@@ -182,7 +173,7 @@ class ChatRepositoryImpl(
         return withContext(Dispatchers.IO) {
             try {
                 val response = chatDatabase.messageDao()
-                    .getSessionIdBySessionIdentity(sessionIdentity = sessionIdentity)
+                    .getSessionIdBySessionIdentity()
                 Response.Success(data = response)
             } catch (e: Exception) {
                 Response.Error(message = e.message.toString())
@@ -190,170 +181,42 @@ class ChatRepositoryImpl(
         }
     }
 
-    override suspend fun queryPost(queryPostRequest: QueryPostRequest): Flow<QueryResponseEvent> =
-        flow {
-        try {
-            val networkConfiguration = ChatInit.getChatInitConfiguration().networkConfiguration
-            val networkHeaders = networkConfiguration.headers
-            networkHeaders.put("Accept","text/event-stream")
-            networkHeaders.put("Content-Type","application/json")
-            val url = networkConfiguration.baseUrl + networkConfiguration.aiBotEndpoint
-            val res = RetrofitClient.chatApiService.postQuery(
-                params = queryPostRequest.queryParams,
-                body = queryPostRequest.body,
-                headers = networkHeaders,
-                url = url
-            )
-
-            var lastEventData: QueryResponseEvent? = null
-
-            if(res.isSuccessful) {
-                res.body()?.source()?.let { source ->
-                    while (!source.exhausted()) {
-                        val line = source.readUtf8Line()
-                        if (line != null && line.startsWith("data:")) {
-                            val eventData = line.removePrefix("data:").trim()
-                            val eventResponseData: QueryResponseEvent =
-                                Gson().fromJson(eventData, QueryResponseEvent::class.java)
-                            eventResponseData.isLastEvent = false
-                            lastEventData = eventResponseData
-                            lastEventData?.let {
-                                emit(it)
-                            }
-                        }
-                    }
-                }
-                lastEventData?.let {
-                    it.isLastEvent = true
-                    emit(it)
-                }
-            } else {
-                emit(QueryResponseEvent(msgId = 0, overwrite = true, text = "", isLastEvent = true))
+    override suspend fun getSessionData(sessionId: String): Result<ChatSession> =
+        withContext(Dispatchers.IO) {
+            try {
+                val response = chatDatabase.messageDao().getChatSessionById(sessionId = sessionId)
+                Result.success(response)
+            } catch (e: Exception) {
+                Result.failure(e)
             }
-        } catch (e : Exception) {
-            emit(QueryResponseEvent(msgId = 0, overwrite = true, text = "", isLastEvent = true))
-            Log.d("ChatRepo","Network Error: ${e.message.toString()}")
         }
-    }.flowOn(Dispatchers.IO)
 
-    override suspend fun askNewQuery(
-        messageEntity: MessageEntity,
-        networkConfiguration: NetworkConfiguration
-    ): Flow<QueryResponseEvent> = flow {
-        try {
-            Log.d("askNewQuery", messageEntity.toString())
-            Log.d("askNewQuery", networkConfiguration.toString())
-            RetrofitClient.init(networkConfiguration.baseUrl)
-            val msgId = messageEntity.msgId + 1
-
-            val queryPostRequest = QueryPostRequest(
-                queryParams = networkConfiguration.params,
-                body = QueryPostBody(
-                    listOf(
-                        PostMessage(
-                            role = MessageRole.USER.role,
-                            text = messageEntity.messageText,
-                            files = messageEntity.messageFiles
+    override suspend fun getLastSession(userInfo: UserInfo?): Result<ChatInfo> =
+        withContext(Dispatchers.IO) {
+            try {
+                val response = if (userInfo == null) {
+                    chatDatabase.messageDao().getLastSession()
+                } else {
+                    chatDatabase.messageDao()
+                        .getLastSessionData(
+                            ownerId = userInfo.userId,
+                            businessId = userInfo.businessId
                         )
-                    )
-                )
-            )
-            val networkHeaders = networkConfiguration.headers
-            networkHeaders.put("Accept", "text/event-stream")
-            networkHeaders.put("Content-Type", "application/json")
-            val url = networkConfiguration.baseUrl + networkConfiguration.aiBotEndpoint
-            val res = RetrofitClient.chatApiService.postQuery(
-                params = queryPostRequest.queryParams,
-                body = queryPostRequest.body,
-                headers = networkHeaders,
-                url = url
-            )
-
-            var lastEventData: QueryResponseEvent? = null
-
-            if (res.isSuccessful) {
-                res.body()?.source()?.let { source ->
-                    while (!source.exhausted()) {
-                        val line = source.readUtf8Line()
-                        if (line != null && line.startsWith("data:")) {
-                            val eventData = line.removePrefix("data:").trim()
-                            val eventResponseData: QueryResponseEvent =
-                                Gson().fromJson(eventData, QueryResponseEvent::class.java)
-                            eventResponseData.isLastEvent = false
-                            lastEventData = eventResponseData
-                            lastEventData?.let {
-                                handleEventData(
-                                    eventData = it,
-                                    sessionId = messageEntity.sessionId,
-                                    chatContext = messageEntity.chatContext,
-                                    chatSubContext = messageEntity.chatSubContext,
-                                    chatSessionConfig = messageEntity.chatSessionConfig,
-                                    sessionIdentity = messageEntity.sessionIdentity,
-                                    ownerId = messageEntity.ownerId,
-                                    msgId = msgId
-                                )
-                                emit(it)
-                            }
-                        }
-                    }
                 }
-                lastEventData?.let {
-                    it.isLastEvent = true
-                    handleEventData(
-                        msgId = msgId,
-                        eventData = it,
-                        sessionId = messageEntity.sessionId,
-                        chatContext = messageEntity.chatContext,
-                        chatSubContext = messageEntity.chatSubContext,
-                        chatSessionConfig = messageEntity.chatSessionConfig,
-                        sessionIdentity = messageEntity.sessionIdentity,
-                        ownerId = messageEntity.ownerId
-                    )
-                    emit(it)
-                }
-            } else {
-                emit(QueryResponseEvent(msgId = 0, overwrite = true, text = "", isLastEvent = true))
+                if (response == null) return@withContext Result.failure(Exception("No session found for userId and BusinessId!"))
+                Result.success(response.toChatInfo())
+            } catch (e: Exception) {
+                Result.failure(e)
             }
-        } catch (e: Exception) {
-            emit(QueryResponseEvent(msgId = 0, overwrite = true, text = "", isLastEvent = true))
-            Log.d("ChatRepo", "Network Error: ${e.message.toString()}")
         }
-    }.flowOn(Dispatchers.IO)
 
-    private suspend fun handleEventData(
-        msgId: Int,
-        eventData: QueryResponseEvent,
-        sessionId: String,
-        chatContext: String?,
-        chatSubContext: String?,
-        chatSessionConfig: String?,
-        sessionIdentity: String?,
-        ownerId: String?
-    ) {
-        if (eventData.isLastEvent) {
-            return
+    override suspend fun insertChatSession(session: ChatSession): Result<Boolean> =
+        withContext(Dispatchers.IO) {
+            try {
+                chatDatabase.messageDao().insertChatSession(session)
+                Result.success(true)
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
         }
-        if (eventData.overwrite == null || eventData.text == null) {
-            return
-        }
-        Log.d("handleEventData", eventData.toString())
-        insertMessages(
-            messages = listOf(
-                MessageEntity(
-                    msgId = msgId,
-                    sessionId = sessionId,
-                    createdAt = Utils.getCurrentUTCEpochMillis(),
-                    messageFiles = null,
-                    messageText = eventData.text,
-                    htmlString = null,
-                    role = MessageRole.AI,
-                    chatContext = chatContext,
-                    chatSubContext = chatSubContext,
-                    chatSessionConfig = chatSessionConfig,
-                    sessionIdentity = sessionIdentity,
-                    ownerId = ownerId
-                )
-            )
-        )
-    }
 }
