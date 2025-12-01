@@ -199,10 +199,13 @@ internal class ChatSessionManager(
     private fun handleStreamResponse(
         socketEvent: StreamEvent
     ) {
+        if (socketEvent.data.text.isNullOrBlank()) {
+            return
+        }
         val newResponseText = _responseStream.value?.data?.text ?: ""
         val updatedEvent = socketEvent.copy(
             data = socketEvent.data.copy(
-                text = newResponseText + (socketEvent.data.text ?: "")
+                text = newResponseText + socketEvent.data.text
             )
         )
         _responseStream.value = updatedEvent
