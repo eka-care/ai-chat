@@ -3,7 +3,7 @@ package com.eka.conversation.features.audio
 import android.content.Context
 import android.media.MediaRecorder
 import android.os.Build
-import com.eka.conversation.common.PermissionChecker
+import com.eka.conversation.common.hasRecordAudioPermission
 import java.io.File
 import java.io.FileOutputStream
 
@@ -22,7 +22,7 @@ class AndroidAudioRecorder(
     }
 
     override fun startRecording(outputFile: File, onError: (String) -> Unit) {
-        if (!PermissionChecker.hasRecordAudioPermission(context)) {
+        if (!hasRecordAudioPermission(context)) {
             onError("Record Audio Permission Not Granted!")
             return
         }
