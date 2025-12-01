@@ -4,7 +4,6 @@ import android.util.Base64
 import com.eka.conversation.client.ChatSDK
 import com.eka.conversation.client.events.SDKEventLogger
 import com.eka.conversation.client.events.SDKEventType
-import com.eka.conversation.client.interfaces.ResponseStreamCallback
 import com.eka.conversation.client.interfaces.SessionCallback
 import com.eka.conversation.common.ChatLogger
 import com.eka.conversation.common.TimeUtils
@@ -191,8 +190,9 @@ internal class ChatSessionManager(
         val lastMessage = _responseStream.value
         lastMessage?.let {
             handleStreamEvent(sessionId = sessionId, event = lastMessage)
-            _responseStream.value = null
         }
+        _responseStream.value = null
+        ChatSDK.getResponseStreamCallbacks()?.onComplete()
         _sendEnabled.value = true
     }
 
@@ -200,11 +200,14 @@ internal class ChatSessionManager(
         socketEvent: StreamEvent
     ) {
         val newResponseText = _responseStream.value?.data?.text ?: ""
-        _responseStream.value = socketEvent.copy(
+        val updatedEvent = socketEvent.copy(
             data = socketEvent.data.copy(
                 text = newResponseText + (socketEvent.data.text ?: "")
             )
         )
+        _responseStream.value = updatedEvent
+        ChatSDK.getResponseStreamCallbacks()
+            ?.onNewEvent(updatedEvent.toMessageModel(sessionId = currentSessionId ?: ""))
     }
 
     private suspend fun handleStreamEvent(sessionId: String, event: StreamEvent) {
@@ -551,8 +554,7 @@ internal class ChatSessionManager(
 
     fun sendNewQuery(
         toolUseId: String?,
-        query: String,
-        responseHandler: ResponseStreamCallback
+        query: String
     ): Boolean {
         val chatQuery = SendChatEvent(
             timeStamp = TimeUtils.getCurrentUTCEpochMillis(),
@@ -571,12 +573,12 @@ internal class ChatSessionManager(
         _responseStream.value = null
         val response = socketManager?.sendText(stringQuery) ?: false
         if (response) {
-            responseHandler.onSuccess(responseStream = getResponseStream())
+            ChatSDK.getResponseStreamCallbacks()?.onSuccess()
             coroutineScope.launch {
                 storeSocketEventToDB(socketEvent = chatQuery)
             }
         } else {
-            responseHandler.onFailure(Exception("Error sending query!"))
+            ChatSDK.getResponseStreamCallbacks()?.onFailure(Exception("Error sending query!"))
         }
         _sendEnabled.value = !response
         return response

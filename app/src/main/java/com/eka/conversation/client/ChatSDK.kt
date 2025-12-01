@@ -35,8 +35,18 @@ object ChatSDK {
 
     private var speechToTextConfiguration: SpeechToTextConfiguration? = null
 
+    private var responseStreamCallbacks: ResponseStreamCallback? = null
+
     private fun attachSpeechToTextConfig(speechToTextConfiguration: SpeechToTextConfiguration) {
         this.speechToTextConfiguration = speechToTextConfiguration
+    }
+
+    private fun attachResponseStreamCallbacks(responseStreamCallback: ResponseStreamCallback) {
+        this.responseStreamCallbacks = responseStreamCallback
+    }
+
+    internal fun getResponseStreamCallbacks(): ResponseStreamCallback? {
+        return this.responseStreamCallbacks
     }
 
     internal fun provideSpeechToTextData(result: Result<String?>) {
@@ -164,10 +174,10 @@ object ChatSDK {
             }
             throw IllegalStateException("Start Session not called before sending query!")
         }
+        attachResponseStreamCallbacks(responseStreamCallback = callback)
         chatSessionManager?.sendNewQuery(
             toolUseId = toolUseId,
-            query = query,
-            responseHandler = callback
+            query = query
         )
     }
 
