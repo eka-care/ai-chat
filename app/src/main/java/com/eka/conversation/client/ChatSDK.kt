@@ -192,6 +192,11 @@ object ChatSDK {
         return configuration!!
     }
 
+    fun cleanUp() {
+        ChatLogger.d("ChatSDK", "ChatSDK cleaned up")
+        chatSessionManager?.cleanUp()
+    }
+
     /**
      * Add an event listener to receive SDK events
      * @param listener The listener that will receive SDK events
