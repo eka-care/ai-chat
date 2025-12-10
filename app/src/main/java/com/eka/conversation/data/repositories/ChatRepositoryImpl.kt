@@ -2,6 +2,7 @@ package com.eka.conversation.data.repositories
 
 import com.eka.conversation.client.models.ChatInfo
 import com.eka.conversation.client.models.Message
+import com.eka.conversation.common.ChatLogger
 import com.eka.conversation.common.Response
 import com.eka.conversation.common.models.UserInfo
 import com.eka.conversation.data.local.db.ChatDatabase
@@ -215,6 +216,37 @@ class ChatRepositoryImpl(
             try {
                 chatDatabase.messageDao().insertChatSession(session)
                 Result.success(true)
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+        }
+
+    override suspend fun updateSessionTitle(sessionId: String, sessionTitle: String) {
+        withContext(Dispatchers.IO) {
+            try {
+                val session = getSessionData(sessionId = sessionId).getOrNull()
+                if (session == null) return@withContext
+
+                if (!session.sessionTitle.isNullOrBlank()) return@withContext
+
+                chatDatabase.messageDao().updateSessionTitle(
+                    sessionId = sessionId,
+                    sessionTitle = sessionTitle
+                )
+            } catch (e: Exception) {
+                ChatLogger.e("ChatRepositoryImpl", "updateSessionTitle", e)
+            }
+        }
+    }
+
+    override suspend fun getPastSessions(userInfo: UserInfo): Result<List<ChatInfo>> =
+        withContext(Dispatchers.IO) {
+            try {
+                val pastSessions = chatDatabase.messageDao().getPastSessions(
+                    ownerId = userInfo.userId,
+                    businessId = userInfo.businessId
+                )
+                Result.success(pastSessions.map { it.toChatInfo() })
             } catch (e: Exception) {
                 Result.failure(e)
             }

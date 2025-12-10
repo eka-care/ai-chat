@@ -155,4 +155,10 @@ interface MessageDao {
 
     @Upsert
     fun insertChatSession(chatSession: ChatSession)
+
+    @Query("UPDATE ${Constants.CHAT_SESSION} SET session_title = :sessionTitle WHERE session_id = :sessionId")
+    fun updateSessionTitle(sessionId: String, sessionTitle: String)
+
+    @Query("SELECT * FROM ${Constants.CHAT_SESSION} WHERE owner_id = :ownerId AND business_id = :businessId")
+    fun getPastSessions(ownerId: String, businessId: String): List<ChatSession>
 }

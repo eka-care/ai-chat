@@ -21,7 +21,7 @@ import com.eka.conversation.data.local.db.entities.MessageFile
         MessageFTSEntity::class,
         ChatSession::class
     ],
-    version = 7,
+    version = 8,
     exportSchema = false
 )
 @TypeConverters(Converters::class)

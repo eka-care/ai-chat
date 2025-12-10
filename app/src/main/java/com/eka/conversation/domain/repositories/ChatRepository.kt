@@ -37,4 +37,7 @@ interface ChatRepository {
     suspend fun getLastSession(userInfo: UserInfo?): Result<ChatInfo>
 
     suspend fun insertChatSession(session: ChatSession): Result<Boolean>
+    suspend fun updateSessionTitle(sessionId: String, sessionTitle: String)
+
+    suspend fun getPastSessions(userInfo: UserInfo): Result<List<ChatInfo>>
 }

@@ -185,6 +185,14 @@ object ChatSDK {
         return repository?.getMessagesBySessionId(sessionId)
     }
 
+    suspend fun getPastSessions(userInfo: UserInfo): Result<List<ChatInfo>> {
+        if (userInfo.userId.isBlank() || userInfo.businessId.isBlank()) {
+            return Result.failure(Exception("Invalid user info!"))
+        }
+        return repository?.getPastSessions(userInfo = userInfo)
+            ?: Result.failure(Exception("ChatSDK not initialised!"))
+    }
+
     fun getChatConfiguration(): ChatConfiguration {
         requireNotNull(configuration) {
             throw IllegalStateException("Chat configuration not initialized")
