@@ -9,7 +9,7 @@ import com.eka.conversation.common.Constants
 
 @Keep
 @Entity(tableName = Constants.CHAT_SESSION)
-data class ChatSession(
+internal data class ChatSession(
     @PrimaryKey
     @ColumnInfo(name = "session_id")
     val sessionId: String,
@@ -27,7 +27,7 @@ data class ChatSession(
     val sessionTitle: String? = null,
 )
 
-fun ChatSession.toChatInfo(): ChatInfo {
+internal fun ChatSession.toChatInfo(): ChatInfo {
     return ChatInfo(
         sessionId = sessionId,
         createdAt = createdAt,

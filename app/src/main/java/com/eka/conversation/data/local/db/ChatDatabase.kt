@@ -25,7 +25,7 @@ import com.eka.conversation.data.local.db.entities.MessageFile
     exportSchema = false
 )
 @TypeConverters(Converters::class)
-abstract class ChatDatabase : RoomDatabase() {
+internal abstract class ChatDatabase : RoomDatabase() {
     abstract fun messageDao(): MessageDao
     abstract fun messageFileDao() : MessageFileDao
 

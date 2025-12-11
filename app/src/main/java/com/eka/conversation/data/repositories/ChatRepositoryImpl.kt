@@ -18,7 +18,7 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 
-class ChatRepositoryImpl(
+internal class ChatRepositoryImpl(
     private val chatDatabase: ChatDatabase
 ) : ChatRepository {
     override suspend fun insertMessages(messages: List<MessageEntity>) {
@@ -83,6 +83,17 @@ class ChatRepositoryImpl(
             Response.Error(message = e.message.toString())
         }
     }
+
+    override suspend fun getMessages(sessionId: String): Result<List<Message>> =
+        withContext(Dispatchers.IO) {
+            return@withContext try {
+                val response = chatDatabase.messageDao().getMessages(sessionId = sessionId)
+                    .mapNotNull { message -> message.toMessageModel() }
+                Result.success(response)
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+        }
 
     override suspend fun getMessageById(messageId: String, sessionId: String): MessageEntity? {
         return withContext(Dispatchers.IO) {
@@ -239,14 +250,18 @@ class ChatRepositoryImpl(
         }
     }
 
-    override suspend fun getPastSessions(userInfo: UserInfo): Result<List<ChatInfo>> =
+    override suspend fun getPastSessions(userInfo: UserInfo): Result<Flow<List<ChatInfo>>> =
         withContext(Dispatchers.IO) {
             try {
                 val pastSessions = chatDatabase.messageDao().getPastSessions(
                     ownerId = userInfo.userId,
                     businessId = userInfo.businessId
-                )
-                Result.success(pastSessions.map { it.toChatInfo() })
+                ).map { chatSessions ->
+                    chatSessions.map { chatSession ->
+                        chatSession.toChatInfo()
+                    }
+                }
+                Result.success(pastSessions)
             } catch (e: Exception) {
                 Result.failure(e)
             }

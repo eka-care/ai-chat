@@ -7,7 +7,7 @@ import com.eka.conversation.data.local.db.entities.models.MessageRole
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 
-class Converters {
+internal class Converters {
     private val gson = Gson()
 
     @TypeConverter

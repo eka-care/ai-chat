@@ -31,7 +31,7 @@ import com.google.gson.Gson
         androidx.room.Index(value = ["session_id"])
     ]
 )
-data class MessageEntity(
+internal data class MessageEntity(
     @PrimaryKey
     @ColumnInfo(name = "msg_id")
     val messageId: String,
@@ -62,7 +62,7 @@ data class MessageFTSEntity(
     @ColumnInfo(name = "content") val messageContent: String,
 )
 
-fun MessageEntity.toMessageModel(): Message? {
+internal fun MessageEntity.toMessageModel(): Message? {
     return if (role == MessageRole.AI) {
         val socketEvent = SocketEventSerializer.deserializeReceivedEvent(data = messageContent)
         when (socketEvent) {
