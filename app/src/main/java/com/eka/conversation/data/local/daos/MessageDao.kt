@@ -13,7 +13,7 @@ import com.eka.conversation.data.local.db.entities.MessageEntity
 import kotlinx.coroutines.flow.Flow
 
 @Dao
-interface MessageDao {
+internal interface MessageDao {
     // Insert a single message
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertMessage(message: MessageEntity): Long
@@ -141,6 +141,9 @@ interface MessageDao {
     @Query("SELECT * FROM ${Constants.MESSAGES_TABLE_NAME} WHERE session_id = :sessionId ORDER BY created_at ASC")
     fun getMessagesBySessionId(sessionId : String): Flow<List<MessageEntity>>
 
+    @Query("SELECT * FROM ${Constants.MESSAGES_TABLE_NAME} WHERE session_id = :sessionId ORDER BY created_at ASC")
+    suspend fun getMessages(sessionId: String): List<MessageEntity>
+
     @Query("""UPDATE ${Constants.MESSAGES_TABLE_NAME} SET owner_id = :newOwnerId WHERE owner_id = "owner_id_default" """)
     fun updateAllMessagesWithNewOwnerId(newOwnerId: String)
 
@@ -155,4 +158,10 @@ interface MessageDao {
 
     @Upsert
     fun insertChatSession(chatSession: ChatSession)
+
+    @Query("UPDATE ${Constants.CHAT_SESSION} SET session_title = :sessionTitle WHERE session_id = :sessionId")
+    fun updateSessionTitle(sessionId: String, sessionTitle: String)
+
+    @Query("SELECT * FROM ${Constants.CHAT_SESSION} WHERE owner_id = :ownerId AND business_id = :businessId")
+    fun getPastSessions(ownerId: String, businessId: String): Flow<List<ChatSession>>
 }

@@ -9,7 +9,7 @@ import com.eka.conversation.data.local.db.entities.models.MessageFileType
 
 @Keep
 @Entity(tableName = Constants.MESSAGES_FILES_TABLE_NAME)
-data class MessageFile(
+internal data class MessageFile(
     @PrimaryKey(autoGenerate = true)
     @ColumnInfo(name = "local_file_id")
     val localFileId : Int,

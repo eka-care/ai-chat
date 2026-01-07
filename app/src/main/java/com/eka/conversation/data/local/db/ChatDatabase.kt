@@ -21,11 +21,11 @@ import com.eka.conversation.data.local.db.entities.MessageFile
         MessageFTSEntity::class,
         ChatSession::class
     ],
-    version = 7,
+    version = 8,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
-abstract class ChatDatabase : RoomDatabase() {
+internal abstract class ChatDatabase : RoomDatabase() {
     abstract fun messageDao(): MessageDao
     abstract fun messageFileDao() : MessageFileDao
 

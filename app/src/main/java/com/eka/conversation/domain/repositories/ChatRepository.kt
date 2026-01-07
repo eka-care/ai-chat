@@ -9,7 +9,7 @@ import com.eka.conversation.data.local.db.entities.MessageEntity
 import com.eka.conversation.data.local.db.entities.MessageFile
 import kotlinx.coroutines.flow.Flow
 
-interface ChatRepository {
+internal interface ChatRepository {
     // local
     suspend fun insertMessages(messages : List<MessageEntity>)
     suspend fun updateMessage(message : MessageEntity)
@@ -17,6 +17,7 @@ interface ChatRepository {
     fun getSearchResult(query : String) : Flow<List<MessageEntity>>
     fun getSearchResultWithOwnerId(query: String, ownerId: String): Flow<List<MessageEntity>>
     fun getMessagesBySessionId(sessionId: String): Response<Flow<List<Message>>>
+    suspend fun getMessages(sessionId: String): Result<List<Message>>
     suspend fun getMessageById(messageId: String, sessionId: String): MessageEntity?
     suspend fun getLastMessagesOfEachSessionId() : Response<List<MessageEntity>>
 
@@ -37,4 +38,7 @@ interface ChatRepository {
     suspend fun getLastSession(userInfo: UserInfo?): Result<ChatInfo>
 
     suspend fun insertChatSession(session: ChatSession): Result<Boolean>
+    suspend fun updateSessionTitle(sessionId: String, sessionTitle: String)
+
+    suspend fun getPastSessions(userInfo: UserInfo): Result<Flow<List<ChatInfo>>>
 }

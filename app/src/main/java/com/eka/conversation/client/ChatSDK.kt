@@ -106,6 +106,8 @@ object ChatSDK {
         }
         chatSessionManager?.cleanUp()
         chatSessionManager = null
+        this.responseStreamCallbacks = null
+        this.speechToTextConfiguration = null
         chatSessionManager = ChatSessionManager(
             authConfiguration = getChatConfiguration().authConfiguration,
             sessionManagementRepository = sessionRepository!!,
@@ -181,8 +183,20 @@ object ChatSDK {
         )
     }
 
-    fun getMessages(sessionId: String): Response<Flow<List<Message>>>? {
+    fun getMessagesFlow(sessionId: String): Response<Flow<List<Message>>>? {
         return repository?.getMessagesBySessionId(sessionId)
+    }
+
+    suspend fun getSessionMessages(sessionId: String): Result<List<Message>>? {
+        return repository?.getMessages(sessionId = sessionId)
+    }
+
+    suspend fun getPastSessions(userInfo: UserInfo): Result<Flow<List<ChatInfo>>> {
+        if (userInfo.userId.isBlank() || userInfo.businessId.isBlank()) {
+            return Result.failure(Exception("Invalid user info!"))
+        }
+        return repository?.getPastSessions(userInfo = userInfo)
+            ?: Result.failure(Exception("ChatSDK not initialised!"))
     }
 
     fun getChatConfiguration(): ChatConfiguration {

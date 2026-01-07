@@ -9,7 +9,7 @@ import com.eka.conversation.common.Constants
 import com.eka.conversation.data.local.db.entities.MessageFile
 
 @Dao
-interface MessageFileDao {
+internal interface MessageFileDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertMessageFile(messageFile: MessageFile): Long
 

@@ -164,7 +164,7 @@ internal class ChatSessionManager(
                 }
                 ChatLogger.d(TAG, "ErrorEvent $socketEvent")
             }
-            }
+        }
     }
 
     private fun handleSendEvent(socketEvent: SendChatEvent) {
@@ -183,6 +183,12 @@ internal class ChatSessionManager(
                     )
                 )
             )
+            socketEvent.data.text?.let { sessionTitle ->
+                chatRepository.updateSessionTitle(
+                    sessionId = sessionId,
+                    sessionTitle = sessionTitle
+                )
+            }
         }
     }
 

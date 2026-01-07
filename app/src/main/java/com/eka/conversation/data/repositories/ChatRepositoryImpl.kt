@@ -2,6 +2,7 @@ package com.eka.conversation.data.repositories
 
 import com.eka.conversation.client.models.ChatInfo
 import com.eka.conversation.client.models.Message
+import com.eka.conversation.common.ChatLogger
 import com.eka.conversation.common.Response
 import com.eka.conversation.common.models.UserInfo
 import com.eka.conversation.data.local.db.ChatDatabase
@@ -17,7 +18,7 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 
-class ChatRepositoryImpl(
+internal class ChatRepositoryImpl(
     private val chatDatabase: ChatDatabase
 ) : ChatRepository {
     override suspend fun insertMessages(messages: List<MessageEntity>) {
@@ -82,6 +83,17 @@ class ChatRepositoryImpl(
             Response.Error(message = e.message.toString())
         }
     }
+
+    override suspend fun getMessages(sessionId: String): Result<List<Message>> =
+        withContext(Dispatchers.IO) {
+            return@withContext try {
+                val response = chatDatabase.messageDao().getMessages(sessionId = sessionId)
+                    .mapNotNull { message -> message.toMessageModel() }
+                Result.success(response)
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+        }
 
     override suspend fun getMessageById(messageId: String, sessionId: String): MessageEntity? {
         return withContext(Dispatchers.IO) {
@@ -215,6 +227,41 @@ class ChatRepositoryImpl(
             try {
                 chatDatabase.messageDao().insertChatSession(session)
                 Result.success(true)
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+        }
+
+    override suspend fun updateSessionTitle(sessionId: String, sessionTitle: String) {
+        withContext(Dispatchers.IO) {
+            try {
+                val session = getSessionData(sessionId = sessionId).getOrNull()
+                if (session == null) return@withContext
+
+                if (!session.sessionTitle.isNullOrBlank()) return@withContext
+
+                chatDatabase.messageDao().updateSessionTitle(
+                    sessionId = sessionId,
+                    sessionTitle = sessionTitle
+                )
+            } catch (e: Exception) {
+                ChatLogger.e("ChatRepositoryImpl", "updateSessionTitle", e)
+            }
+        }
+    }
+
+    override suspend fun getPastSessions(userInfo: UserInfo): Result<Flow<List<ChatInfo>>> =
+        withContext(Dispatchers.IO) {
+            try {
+                val pastSessions = chatDatabase.messageDao().getPastSessions(
+                    ownerId = userInfo.userId,
+                    businessId = userInfo.businessId
+                ).map { chatSessions ->
+                    chatSessions.map { chatSession ->
+                        chatSession.toChatInfo()
+                    }
+                }
+                Result.success(pastSessions)
             } catch (e: Exception) {
                 Result.failure(e)
             }
