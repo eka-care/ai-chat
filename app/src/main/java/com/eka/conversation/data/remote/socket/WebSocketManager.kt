@@ -1,6 +1,5 @@
 package com.eka.conversation.data.remote.socket
 
-import android.util.Log
 import com.eka.conversation.common.ChatLogger
 import com.eka.conversation.common.TimeUtils
 import com.eka.conversation.data.remote.socket.events.SocketEventType
@@ -8,8 +7,6 @@ import com.eka.conversation.data.remote.socket.events.send.AuthData
 import com.eka.conversation.data.remote.socket.events.send.AuthEvent
 import com.eka.conversation.data.remote.socket.states.SocketConnectionState
 import com.eka.conversation.data.remote.socket.states.SocketMessage
-import com.moczul.ok2curl.CurlInterceptor
-import com.moczul.ok2curl.logger.Logger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -43,13 +40,6 @@ class WebSocketManager(
         .readTimeout(30, TimeUnit.SECONDS)
         .writeTimeout(30, TimeUnit.SECONDS)
         .pingInterval(30, TimeUnit.SECONDS)
-        .addInterceptor(
-            CurlInterceptor(object : Logger {
-                override fun log(message: String) {
-                    Log.v(TAG, message)
-                }
-            })
-        )
         .build()
 
     private val _connectionState = MutableStateFlow<SocketConnectionState>(
