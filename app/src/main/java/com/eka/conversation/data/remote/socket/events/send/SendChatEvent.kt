@@ -24,7 +24,7 @@ data class SendChatEvent(
 data class SendChatData(
     @SerializedName("text")
     val text: String? = null,
-    @SerializedName("tool_use_id")
+    @SerializedName(value = "tool_id", alternate = ["tool_use_id"])
     val toolUseId: String? = null,
     @SerializedName("extension")
     val extension: String? = null,

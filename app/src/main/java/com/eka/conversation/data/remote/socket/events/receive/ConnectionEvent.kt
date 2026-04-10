@@ -12,10 +12,14 @@ data class ConnectionEvent(
     @SerializedName("ev")
     override val eventType: SocketEventType,
     @SerializedName("data")
-    val data: ConnectionData,
+    val data: ConnectionData? = null,
+    @SerializedName("sid")
+    val sessionId: String? = null,
     @SerializedName("msg")
     val message: String? = null
-) : BaseSocketEvent
+) : BaseSocketEvent {
+    fun resolvedSessionId(): String? = sessionId ?: data?.sessionId
+}
 
 @Keep
 data class ConnectionData(

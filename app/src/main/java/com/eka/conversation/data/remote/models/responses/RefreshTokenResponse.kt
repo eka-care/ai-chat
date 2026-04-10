@@ -15,8 +15,14 @@ data class RefreshTokenResponse(
     @SerializedName("session_token")
     var sessionToken: String?,
     @SerializedName("session_validity_s")
-    var sessionValidityS: Int?,
-    @SerializedName("error")
-    var error: ResponseError?
+    var sessionValidityS: String?,
+    @SerializedName("user_id")
+    var userId: String? = null,
+    @SerializedName("msg")
+    var msg: String? = null,
+    @SerializedName("initial_message")
+    var initialMessage: InitialMessage? = null,
+    @SerializedName("err")
+    var err: ResponseError?
 )
 

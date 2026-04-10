@@ -25,7 +25,17 @@ data class StreamEvent(
 @Keep
 data class StreamData(
     @SerializedName("text")
-    val text: String? = null
+    val text: String? = null,
+    @SerializedName("progress_msg")
+    val progressMsg: String? = null,
+    @SerializedName("tips")
+    val tips: List<String>? = null,
+    @SerializedName("tool_id")
+    val toolId: String? = null,
+    @SerializedName("tool_name")
+    val toolName: String? = null,
+    @SerializedName("_meta")
+    val meta: Map<String, Any>? = null
 )
 
 fun StreamEvent.toMessageModel(sessionId: String): Message {

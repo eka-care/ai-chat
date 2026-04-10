@@ -11,11 +11,29 @@ data class ErrorEvent(
     override val timeStamp: Long? = null,
     @SerializedName("ev")
     override val eventType: SocketEventType,
+    @SerializedName("data")
+    val data: ErrorEventData? = null,
+    @SerializedName("code")
+    private val codeRaw: String? = null,
+    @SerializedName("msg")
+    private val messageRaw: String? = null,
+) : BaseSocketEvent {
+    val code: String?
+        get() = data?.code ?: codeRaw
+
+    val message: String?
+        get() = data?.msg ?: messageRaw
+}
+
+@Keep
+data class ErrorEventData(
     @SerializedName("code")
     val code: String? = null,
     @SerializedName("msg")
-    val message: String? = null,
-) : BaseSocketEvent
+    val msg: String? = null,
+    @SerializedName("socket_code")
+    val socketCode: Int? = null
+)
 
 enum class ErrorEventCode(val stringValue: String) {
     SESSION_EXPIRED("session_expired")
