@@ -292,13 +292,13 @@ internal class ChatSessionManager(
                         SDKEventLogger.error(SDKEventType.SESSION_MANAGEMENT) {
                             put("event", "session_creation_failed")
                             put("userId", userId)
-                            put("error", response.body?.error?.msg ?: "User Not Found!")
+                            put("error", response.body?.err?.msg ?: "User Not Found!")
                             put("errorType", "ServerError")
                         }
 
                         return@withContext Result.failure(
                             Exception(
-                                response.body?.error?.msg ?: "User Not Found!"
+                                response.body?.err?.msg ?: "User Not Found!"
                             )
                         )
                     }
@@ -364,13 +364,13 @@ internal class ChatSessionManager(
                         SDKEventLogger.error(SDKEventType.SESSION_MANAGEMENT) {
                             put("event", "session_token_refresh_failed")
                             put("sessionId", sessionId)
-                            put("error", response.body?.error?.msg ?: "Session Not Found!")
+                            put("error", response.body?.err?.msg ?: "Session Not Found!")
                             put("errorType", "ServerError")
                         }
 
                         return@withContext Result.failure(
                             Exception(
-                                response.body?.error?.msg ?: "Session Not Found!"
+                                response.body?.err?.msg ?: "Session Not Found!"
                             )
                         )
                     }
@@ -429,7 +429,7 @@ internal class ChatSessionManager(
                         ChatLogger.d(TAG, response.body.toString())
                         return@withContext Result.failure(
                             Exception(
-                                response.body?.error?.msg ?: "Session Not Found!"
+                                response.body?.err?.msg ?: "Session Not Found!"
                             )
                         )
                     }

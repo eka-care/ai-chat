@@ -24,14 +24,30 @@ data class ReceiveChatEvent(
 data class ReceiveChatData(
     @SerializedName("text")
     val text: String? = null,
-    @SerializedName("tool_use_id")
+    @SerializedName(value = "tool_id", alternate = ["tool_use_id"])
     val toolUseId: String? = null,
     @SerializedName("choices")
     val choices: List<String>? = null,
     @SerializedName("additional_option")
     val additionalOption: String? = null,
     @SerializedName("urls")
-    val urls: List<String>? = null,
+    val urls: List<ReceiveChatUrl>? = null,
+    @SerializedName("exp")
+    val exp: Long? = null,
+    @SerializedName("tips")
+    val tips: List<String>? = null,
+    @SerializedName("tool_name")
+    val toolName: String? = null,
+    @SerializedName("_meta")
+    val meta: Map<String, Any>? = null,
+)
+
+@Keep
+data class ReceiveChatUrl(
+    @SerializedName("id")
+    val id: String,
+    @SerializedName("url")
+    val url: String
 )
 
 //

@@ -23,9 +23,15 @@ data class SessionStatusResponse(
     @SerializedName("session_id")
     var sessionId: String?,
     @SerializedName("session_validity_s")
-    var sessionValidityS: Int?,
+    var sessionValidityS: String?,
+    @SerializedName("session_token")
+    var sessionToken: String? = null,
+    @SerializedName("user_id")
+    var userId: String? = null,
     @SerializedName("msg")
     var msg: String?,
-    @SerializedName("error")
-    var error: ResponseError?
+    @SerializedName("initial_message")
+    var initialMessage: InitialMessage? = null,
+    @SerializedName("err")
+    var err: ResponseError?
 )
