@@ -140,6 +140,8 @@ class MatrixClient(
             MatrixLog.d("session ${if (existingSessionId.isNullOrBlank()) "created" else "resumed"}: ${MatrixLog.id(session.sessionId)}")
             initializeConnection(session.sessionId)
             return session
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e // the caller moved on to another session; not an error
         } catch (e: Throwable) {
             MatrixLog.w("startSession failed: ${e.message} (status=${(e as? MatrixApiException)?.status})")
             emitError(e)
