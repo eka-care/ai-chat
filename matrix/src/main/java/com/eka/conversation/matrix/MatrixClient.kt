@@ -68,6 +68,18 @@ class MatrixClient(
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val http = MatrixHttpClient(config.baseUrl, config.agentId, config.channel)
+
+    /** Context for the next session create; starts as [MatrixClientConfig.context]. */
+    @Volatile
+    private var sessionContext: JsonObject? = config.context
+
+    /**
+     * Replace the context sent when the next session is created (e.g. the doctor attached a
+     * patient). The server fixes context at create time, so start a new session to apply it.
+     */
+    fun updateContext(context: JsonObject?) {
+        sessionContext = context
+    }
     private val api = MatrixApi(http)
     private val tokens = TokenManager(api, http, config.agentId, config.authToken, seeded, onTokenExchange)
     private val files = FileUploadManager(http.okHttp)
@@ -218,7 +230,7 @@ class MatrixClient(
     private var connectionEstablished = false
 
     private suspend fun createNewSession(): SessionResponse {
-        val ctx = config.context
+        val ctx = sessionContext
         val profile = ctx?.get("profile") as? JsonObject
         val extra = ctx?.filterKeys { it != "profile" && it != "referer" }.orEmpty()
         val request = SessionCreateRequest(
