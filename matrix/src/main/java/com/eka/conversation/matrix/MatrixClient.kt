@@ -165,6 +165,7 @@ class MatrixClient(
             }
             MatrixLog.d("-> ${envelope.str("ev")}/${envelope.str("ct")}" + (if (request.toolId != null) " tool=${MatrixLog.id(request.toolId)}" else ""))
             conn.send(envelope)
+            watchForAck()
         } catch (e: Throwable) {
             emitError(MatrixError(e.message ?: "Failed to send message", MatrixErrorCode.CONNECTION))
         }
@@ -212,6 +213,8 @@ class MatrixClient(
 
     /** Tear down the transport and timers (keeps credentials). */
     fun endSession() {
+        ackJob?.cancel()
+        validationLossJob?.cancel()
         closeConnection()
         reconnectJob?.cancel()
         reconnectJob = null
@@ -339,6 +342,7 @@ class MatrixClient(
     // ------------------------------------------------------------------ incoming
 
     private fun onIncoming(conn: MatrixConnection, msg: JsonObject) {
+        ackJob?.cancel() // any frame back means the socket is alive
         val ev = msg.str("ev")
         val ct = msg.str("ct")
         val id = msg.str("_id")
@@ -662,13 +666,35 @@ class MatrixClient(
         }
     }
 
+    /** Has a network that actually reaches the internet (validated), not just Wi-Fi/data switched on. */
     private fun isOnline(): Boolean {
         val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager ?: return true
         val caps = cm.getNetworkCapabilities(cm.activeNetwork ?: return false) ?: return false
-        return caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+        return caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+            caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
     }
 
     private var wentOffline = false
+
+    /**
+     * The server answers every chat frame (sync) within ~100 ms. If nothing at all comes back
+     * after a send, the socket is dead even though OkHttp still calls it open (its ping only
+     * notices after up to 40 s): drop it, report offline, and reconnect if the network is up.
+     */
+    private var ackJob: Job? = null
+
+    private fun watchForAck() {
+        ackJob?.cancel()
+        ackJob = scope.launch {
+            delay(ACK_TIMEOUT_MS)
+            MatrixLog.w("no reply ${ACK_TIMEOUT_MS / 1000}s after send: connection is dead")
+            handleNetworkLost()
+            if (isOnline()) handleNetworkAvailable()
+        }
+    }
+
+    /** Validation can drop while Wi-Fi stays connected (no internet behind it); give it a moment. */
+    private var validationLossJob: Job? = null
 
     private fun registerNetworkCallback() {
         if (networkCallback != null) return
@@ -679,7 +705,22 @@ class MatrixClient(
             }
 
             override fun onAvailable(network: Network) {
-                scope.launch { handleNetworkAvailable() }
+                scope.launch { if (isOnline()) handleNetworkAvailable() }
+            }
+
+            override fun onCapabilitiesChanged(network: Network, caps: NetworkCapabilities) {
+                val validated = caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+                scope.launch {
+                    if (validated) {
+                        validationLossJob?.cancel()
+                        handleNetworkAvailable()
+                    } else if (validationLossJob?.isActive != true) {
+                        validationLossJob = scope.launch {
+                            delay(VALIDATION_GRACE_MS)
+                            if (!isOnline()) handleNetworkLost()
+                        }
+                    }
+                }
             }
         }
         try {
@@ -691,6 +732,7 @@ class MatrixClient(
     }
 
     private fun handleNetworkLost() {
+        ackJob?.cancel()
         if (wentOffline) return
         MatrixLog.w("network lost: dropping socket")
         wentOffline = true
@@ -745,6 +787,8 @@ class MatrixClient(
         const val SOCKET = "socket"
         const val HTTP_STREAM = "http_stream"
 
+        private const val ACK_TIMEOUT_MS = 8_000L
+        private const val VALIDATION_GRACE_MS = 3_000L
         private const val EV_PING = "ping"
         private const val EV_PONG = "pong"
         private const val EV_CHAT = "chat"
