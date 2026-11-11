@@ -38,9 +38,11 @@ class AudioMessageRecorder(private val context: Context) {
         this.onDone = onDone
         this.onError = onError
         try {
-            val useWebm = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
-            val ext = if (useWebm) "webm" else "m4a"
-            format = if (useWebm) "audio/webm;codecs=opus" else "audio/mp4"
+            // Matrix rejects Android's WebM/Opus ("invalid_content: Invalid audio format");
+            // AAC in MP4 is accepted and transcribed in ~2 s, so always record that.
+            val useWebm = false
+            val ext = "m4a"
+            format = "audio/mp4"
             val out = File(context.cacheDir, "medassist_${System.currentTimeMillis()}.$ext")
             file = out
             val r = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) MediaRecorder(context) else MediaRecorder()
