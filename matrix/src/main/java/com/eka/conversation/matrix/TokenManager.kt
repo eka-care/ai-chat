@@ -44,7 +44,10 @@ class TokenManager(
 
     /** Exchange only when there is nothing to resume (the transport validates a resumed pair). */
     suspend fun ensureCredentials() {
-        if (lastResponse != null || hasResumableCredentials) return
+        if (lastResponse != null || hasResumableCredentials) {
+            if (lastResponse == null) MatrixLog.d("token exchange skipped: resuming saved tokens (level=$level)")
+            return
+        }
         ensureExchanged()
     }
 
@@ -62,7 +65,7 @@ class TokenManager(
                     // `authToken`), so production has always run as guest. If Matrix rejects the partner token,
                     // keep DocAssist usable as a guest instead of hard-failing.
                     if (partnerAuthToken == null || e.status !in 400..499) throw e
-                    android.util.Log.w("MedAssist", "Partner token rejected (${e.status}); continuing as guest")
+                    MatrixLog.w("token exchange: partner token rejected (${e.status}), continuing as guest")
                     partnerAuthToken = null
                     api.exchange(TokenExchangeRequest(agentId, null, null))
                 }
@@ -124,6 +127,7 @@ class TokenManager(
     }
 
     private fun apply(r: TokenExchangeResponse): TokenExchangeResponse {
+        MatrixLog.d("token exchange ok: level=${r.level}, partnerTokenSent=${partnerAuthToken != null}, expiresIn=${r.expiresIn}s")
         sessToken = r.sessToken
         refreshToken = r.refreshToken
         userId = r.userId

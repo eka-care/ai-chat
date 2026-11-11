@@ -91,6 +91,8 @@ class MatrixClient(
     private var networkCallback: ConnectivityManager.NetworkCallback? = null
 
     init {
+        MatrixLog.init(context)
+        MatrixLog.d("client created: base=${config.baseUrl}, agent=${MatrixLog.id(config.agentId)}, partnerToken=${config.authToken != null}")
         // A 401 on ANY REST call: refresh the pair, rebuild a live socket with the new token, retry the call.
         http.setUnauthorizedHandler { onRestUnauthorized() }
     }
@@ -106,8 +108,10 @@ class MatrixClient(
             api.agentConfig(config.agentId).also { cfg ->
                 agentConfig = cfg
                 connectionType = if (cfg?.connectivity == HTTP_STREAM) HTTP_STREAM else SOCKET
+                MatrixLog.d("agent config: name=${cfg?.name}, connectivity=${cfg?.connectivity}, allowed=${cfg?.allowed}")
             }
         } catch (e: Throwable) {
+            MatrixLog.w("agent config failed: ${e.message}")
             null
         }
     }
@@ -121,9 +125,11 @@ class MatrixClient(
             tokens.ensureCredentials()
             val session = if (!existingSessionId.isNullOrBlank()) SessionResponse(sessionId = existingSessionId)
             else createNewSession()
+            MatrixLog.d("session ${if (existingSessionId.isNullOrBlank()) "created" else "resumed"}: ${MatrixLog.id(session.sessionId)}")
             initializeConnection(session.sessionId)
             return session
         } catch (e: Throwable) {
+            MatrixLog.w("startSession failed: ${e.message} (status=${(e as? MatrixApiException)?.status})")
             emitError(e)
             throw e
         }
@@ -134,6 +140,7 @@ class MatrixClient(
     fun sendMessage(request: OutgoingRequest) {
         val conn = connection
         if (conn == null || !isConnected()) {
+            MatrixLog.d("not connected yet: message buffered")
             outgoingBuffer = request
             return
         }
@@ -142,6 +149,7 @@ class MatrixClient(
                 emitError(MatrixError("No message to send", MatrixErrorCode.MESSAGE))
                 return
             }
+            MatrixLog.d("-> ${envelope.str("ev")}/${envelope.str("ct")}" + (if (request.toolId != null) " tool=${MatrixLog.id(request.toolId)}" else ""))
             conn.send(envelope)
         } catch (e: Throwable) {
             emitError(MatrixError(e.message ?: "Failed to send message", MatrixErrorCode.CONNECTION))
@@ -152,6 +160,7 @@ class MatrixClient(
     suspend fun callTool(toolId: String, messageId: String, params: JsonObject?) {
         val sid = sessionId ?: throw IllegalStateException("Session ID not found")
         check(connection != null) { "Connection not established" }
+        MatrixLog.d("callTool tool=${MatrixLog.id(toolId)} msg=${MatrixLog.id(messageId)} keys=${params?.keys}")
         val response = api.callTool(sid, toolId, messageId, params)
         (response["error"] as? JsonObject)?.let { err ->
             throw MatrixApiException(500, err.str("msg") ?: "Tool call failed", ApiErrorBody(err.str("code"), err.str("msg")))
@@ -241,6 +250,7 @@ class MatrixClient(
             WebSocketConnection(id, config.wsUrl, http.okHttp, scope)
         }
         connectionAttempts++
+        MatrixLog.d("connecting via $connectionType (attempt $connectionAttempts)")
         connectionEstablished = false
         connection = conn
         conn.bind(listenerFor(conn))
@@ -275,6 +285,7 @@ class MatrixClient(
         override fun onDisconnect(details: DisconnectionDetails) {
             if (connection !== conn) return
             if (details.reason == DisconnectReason.CLIENT_CLOSED) return
+            MatrixLog.w("disconnected: ${details.reason} code=${details.code} ${details.message}")
             connectionEstablished = false
             val outcome = outcomeForCloseCode(details.code)
             if (outcome != null) {
@@ -287,6 +298,7 @@ class MatrixClient(
     }
 
     private fun handleConnectionEstablished(conn: MatrixConnection) {
+        MatrixLog.d("connected")
         conn.handleConnected()
         connectionEstablished = true
         emit(MatrixEvent.Connected)
@@ -318,6 +330,7 @@ class MatrixClient(
         val id = msg.str("_id")
         val ts = (msg["ts"] as? JsonPrimitive)?.longOrNull
         val data = msg["data"] as? JsonObject ?: JsonObject(emptyMap())
+        if (ev != EV_STREAM || ct != CT_TEXT) MatrixLog.d("<- $ev${ct?.let { "/$it" } ?: ""} id=${MatrixLog.id(id)}")
         when (ev) {
             EV_CONN -> handleConnectionEstablished(conn)
             EV_CHAT -> when (ct) {
@@ -366,6 +379,7 @@ class MatrixClient(
 
     private fun handleIncomingError(data: JsonObject) {
         val code = data.str("code")
+        MatrixLog.w("server error frame: code=$code msg=${data.str("msg")}")
         when (code) {
             RealtimeErrorCodes.SESSION_TOKEN_EXPIRED -> scope.launch { handleAuthExpiry() }
             RealtimeErrorCodes.SESSION_INACTIVE -> scope.launch { handleSessionInactive() }
@@ -498,6 +512,7 @@ class MatrixClient(
     }
 
     private suspend fun handleRecovery(outcome: Outcome, details: DisconnectionDetails?) {
+        MatrixLog.w("recovery: $outcome (code=${details?.code})")
         if (outcome == Outcome.RETRY_LATER) {
             emitError(MatrixError("Server is busy, retrying shortly", MatrixErrorCode.SESSION, RecoveryReason.RETRY_LATER))
             details?.let { scheduleReconnect(it) }
@@ -663,6 +678,7 @@ class MatrixClient(
 
     private fun handleNetworkLost() {
         if (wentOffline) return
+        MatrixLog.w("network lost: dropping socket")
         wentOffline = true
         reconnectJob?.cancel()
         // OkHttp keeps a dead socket "open" until the next ping fails; drop it now so
@@ -675,6 +691,7 @@ class MatrixClient(
         // onAvailable also fires right after registration; only act after a real loss.
         if (!wentOffline) return
         wentOffline = false
+        MatrixLog.d("network back: reconnecting")
         emit(MatrixEvent.Online)
         val sid = sessionId ?: return
         reconnectJob?.cancel()
