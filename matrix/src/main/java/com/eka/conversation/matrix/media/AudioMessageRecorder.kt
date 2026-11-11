@@ -32,6 +32,13 @@ class AudioMessageRecorder(private val context: Context) {
 
     val isRecording get() = recorder != null
 
+    /** Loudest level since the last call (0..32767), for a live waveform / silence detection. */
+    fun maxAmplitude(): Int = try {
+        recorder?.maxAmplitude ?: 0
+    } catch (_: Throwable) {
+        0
+    }
+
     @Suppress("DEPRECATION")
     fun start(onDone: (AudioPayload) -> Unit, onError: (Throwable) -> Unit) {
         if (recorder != null) return

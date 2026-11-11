@@ -114,6 +114,41 @@ class MatrixClient(
 
     // ------------------------------------------------------------------ public API
 
+    /** Use a cached agent config (e.g. from the last open) until the fresh one arrives. */
+    fun primeAgentConfig(cfg: AgentConfig) {
+        if (agentConfig != null) return
+        agentConfig = cfg
+        connectionType = if (cfg.connectivity == HTTP_STREAM) HTTP_STREAM else SOCKET
+    }
+
+    /** Exchange / refresh tokens ahead of time (app start), so opening a chat skips that round trip. */
+    suspend fun warmUp() {
+        try {
+            tokens.ensureCredentials()
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Throwable) {
+            MatrixLog.w("warm-up failed: ${e.message}")
+        }
+    }
+
+    /**
+     * Cut the reply short. Matrix has no stop event, so (as the web SDK does) close the stream and
+     * reconnect to the same session; the partial reply stays and the chat continues.
+     */
+    suspend fun stopReply() {
+        val sid = sessionId ?: return
+        MatrixLog.d("stop requested: reconnecting ${MatrixLog.id(sid)}")
+        endSession()
+        startSession(sid)
+    }
+
+    /** Always fetches (no cache), for callers that refresh a cached config. */
+    suspend fun fetchAgentConfig(): AgentConfig? {
+        agentConfig = null
+        return getAgentConfig()
+    }
+
     suspend fun getAgentConfig(): AgentConfig? {
         agentConfig?.let { return it }
         return try {
