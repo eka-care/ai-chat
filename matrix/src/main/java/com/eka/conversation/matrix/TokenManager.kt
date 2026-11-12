@@ -44,6 +44,13 @@ class TokenManager(
 
     /** Exchange only when there is nothing to resume (the transport validates a resumed pair). */
     suspend fun ensureCredentials() {
+        // A saved guest login must not stick once the host has a user token: a rejected first exchange
+        // (or a token handed over after a guest start) would otherwise keep the doctor a guest for good.
+        if (lastResponse == null && level == "guest" && !partnerAuthToken.isNullOrBlank()) {
+            MatrixLog.d("token exchange: saved login is guest but a user token is set -> exchanging again")
+            ensureExchanged()
+            return
+        }
         if (lastResponse != null || hasResumableCredentials) {
             if (lastResponse == null) MatrixLog.d("token exchange skipped: resuming saved tokens (level=$level)")
             return
@@ -67,7 +74,7 @@ class TokenManager(
                     if (partnerAuthToken == null || e.status !in 400..499) throw e
                     MatrixLog.w("token exchange: partner token rejected (${e.status}), continuing as guest")
                     partnerAuthToken = null
-                    api.exchange(TokenExchangeRequest(agentId, null, null))
+                    guestExchange()
                 }
                 deferred.complete(apply(r))
             } catch (e: Throwable) {
@@ -78,6 +85,17 @@ class TokenManager(
             }
         }
         return deferred.await()
+    }
+
+    /** Guest exchange that keeps the saved guest (its refresh token) when possible, else a new guest. */
+    private suspend fun guestExchange(): TokenExchangeResponse {
+        val saved = refreshToken ?: return api.exchange(TokenExchangeRequest(agentId, null, null))
+        return try {
+            api.exchange(TokenExchangeRequest(agentId, null, saved))
+        } catch (e: MatrixApiException) {
+            if (e.status !in 400..499) throw e
+            api.exchange(TokenExchangeRequest(agentId, null, null))
+        }
     }
 
     suspend fun refresh(): TokenExchangeResponse {

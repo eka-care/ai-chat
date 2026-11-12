@@ -96,6 +96,13 @@ class MatrixClient(
     private var agentConfig: AgentConfig? = null
 
     private var isRecovering = false
+
+    /**
+     * Whether a session the server no longer has may be replaced by a new one silently. Only for a chat
+     * started in this run: a resumed chat (history pick, last chat) shows its old messages, so a silent
+     * swap would send the next question into a blank chat. Those get SESSION_NOT_FOUND instead.
+     */
+    private var recreateIfGone = true
     private var isReconnecting = false
     private var isSessionNotOwned = false
     private var connectionAttempts = 0
@@ -170,6 +177,7 @@ class MatrixClient(
     suspend fun startSession(existingSessionId: String? = null): SessionResponse {
         try {
             tokens.ensureCredentials()
+            recreateIfGone = existingSessionId.isNullOrBlank()
             val session = if (!existingSessionId.isNullOrBlank()) SessionResponse(sessionId = existingSessionId)
             else createNewSession()
             MatrixLog.d("session ${if (existingSessionId.isNullOrBlank()) "created" else "resumed"}: ${MatrixLog.id(session.sessionId)}")
@@ -622,6 +630,11 @@ class MatrixClient(
             if (status == 401 || status == 403) {
                 clearUser()
                 emitError(MatrixError("Session credentials were rejected", MatrixErrorCode.SESSION, RecoveryReason.SESSION_FORBIDDEN))
+                return
+            }
+            if (!recreateIfGone) {
+                MatrixLog.d("resumed chat is gone (status=$status): asking for a new chat")
+                emitError(MatrixError("This chat has ended", MatrixErrorCode.SESSION, RecoveryReason.SESSION_NOT_FOUND))
                 return
             }
             try {
