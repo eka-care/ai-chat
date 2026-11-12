@@ -22,4 +22,5 @@ dependencyResolutionManagement {
 
 rootProject.name = "ChatBot"
 include(":app")
+include(":matrix")
 include(":testapp")
