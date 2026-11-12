@@ -1,5 +1,6 @@
 package com.eka.conversation.matrix.connection
 
+import com.eka.conversation.matrix.MatrixLog
 import com.eka.conversation.matrix.MatrixApiException
 import com.eka.conversation.matrix.MatrixJson
 import kotlinx.coroutines.CoroutineScope
@@ -57,6 +58,7 @@ class HttpStreamConnection(
 
     private suspend fun streamChat(message: JsonObject) {
         val url = "${baseUrl.trimEnd('/')}/med-assist/session/$sessionId/chat"
+        MatrixLog.net("STREAM -> POST $url\n  body: ${MatrixLog.redact(message.toString())}")
         try {
             var call = newCall(url, message)
             var response = call.execute()
@@ -70,7 +72,9 @@ class HttpStreamConnection(
             response.use { res ->
                 if (!res.isSuccessful) throw MatrixApiException(res.code, "Failed to send message to http stream")
                 val source = res.body?.source() ?: throw MatrixApiException(res.code, "Empty stream body")
+                MatrixLog.net("STREAM <- ${res.code}")
                 val parser = JsonObjectStreamParser { obj ->
+                    MatrixLog.net("STREAM <- ${MatrixLog.redact(obj.toString())}")
                     scope.launch(Dispatchers.Main) { listener?.onMessage(obj) }
                 }
                 val buffer = ByteArray(8 * 1024)

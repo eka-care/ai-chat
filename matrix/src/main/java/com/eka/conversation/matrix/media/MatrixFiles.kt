@@ -1,5 +1,6 @@
 package com.eka.conversation.matrix.media
 
+import com.eka.conversation.matrix.MatrixLog
 import android.content.Context
 import android.net.Uri
 import android.provider.OpenableColumns
@@ -91,7 +92,10 @@ class FileUploadManager(private val okHttp: OkHttpClient) {
                         .put(file.bytes.toRequestBody(file.mimeType.toMediaType()))
                         .build()
                 }
+                val t0 = System.currentTimeMillis()
+                MatrixLog.net("UPLOAD -> ${request.method} ${MatrixLog.redactUrl(entry.url)} (${file.mimeType}, ${file.size} bytes, id=${entry.id})")
                 okHttp.newCall(request).execute().use { res ->
+                    MatrixLog.net("UPLOAD <- ${res.code} id=${entry.id} (${System.currentTimeMillis() - t0} ms)")
                     if (!res.isSuccessful) throw IllegalStateException("Failed to upload ${file.name}: ${res.code}")
                 }
                 ok += entry.id

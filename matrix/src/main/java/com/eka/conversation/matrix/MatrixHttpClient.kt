@@ -126,8 +126,15 @@ class MatrixHttpClient(
             headers.forEach { (k, v) -> header(k, v) }
             method(method, reqBody)
         }.build()
+        val trace = MatrixLog.isEnabled
+        val t0 = System.currentTimeMillis()
+        if (trace) {
+            MatrixLog.net("HTTP -> $method ${MatrixLog.redactUrl(url)}\n  headers: ${MatrixLog.redactHeaders(headers)}" +
+                (if (body != null) "\n  body: ${MatrixLog.redact(body)}" else ""))
+        }
         okHttp.newCall(request).execute().use { response ->
             val text = response.body?.string().orEmpty()
+            if (trace) MatrixLog.net("HTTP <- ${response.code} $method ${url.removePrefix(baseUrl)} (${System.currentTimeMillis() - t0} ms)\n  body: ${MatrixLog.redact(text)}")
             if (!response.isSuccessful) throw toApiError(response, text)
             return try {
                 MatrixJson.decodeFromString(serializer, text.ifBlank { "{}" })

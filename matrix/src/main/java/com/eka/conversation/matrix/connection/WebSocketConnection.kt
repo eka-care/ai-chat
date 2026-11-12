@@ -1,5 +1,6 @@
 package com.eka.conversation.matrix.connection
 
+import com.eka.conversation.matrix.MatrixLog
 import com.eka.conversation.matrix.MatrixJson
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -28,13 +29,16 @@ class WebSocketConnection(
 
     override fun connect() {
         val url = "${wsBaseUrl.trimEnd('/')}/ws/med-assist/session/$sessionId/"
+        MatrixLog.net("WS connect -> $url")
         socket = okHttp.newWebSocket(Request.Builder().url(url).build(), object : WebSocketListener() {
             override fun onOpen(webSocket: WebSocket, response: Response) {
+                MatrixLog.net("WS open <- ${response.code}")
                 open = true
                 post { listener?.onOpen() }
             }
 
             override fun onMessage(webSocket: WebSocket, text: String) {
+                MatrixLog.net("WS <- ${MatrixLog.redact(text)}")
                 val json = try {
                     MatrixJson.parseToJsonElement(text) as? JsonObject
                 } catch (e: Exception) {
@@ -45,6 +49,7 @@ class WebSocketConnection(
             }
 
             override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
+                MatrixLog.net("WS closing <- code=$code reason=$reason")
                 webSocket.close(code, reason)
                 handleClose(code, reason, clean = true)
             }
@@ -54,6 +59,7 @@ class WebSocketConnection(
             }
 
             override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
+                MatrixLog.net("WS failure: ${t.message} (http=${response?.code})")
                 handleClose(1006, t.message ?: "Network connection lost", clean = false)
             }
         })
@@ -84,6 +90,7 @@ class WebSocketConnection(
     override fun send(message: JsonObject) {
         val ws = socket
         check(ws != null && open) { "Cannot send message: connection not open" }
+        MatrixLog.net("WS -> ${MatrixLog.redact(message.toString())}")
         if (!ws.send(message.toString())) throw IllegalStateException("Failed to send WebSocket message")
     }
 
