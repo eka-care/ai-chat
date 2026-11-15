@@ -69,6 +69,23 @@ class MatrixClient(
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val http = MatrixHttpClient(config.baseUrl, config.agentId, config.channel)
 
+    /** App functions the agent can call (get_patient_context...). See [ClientToolHandler]. */
+    private val clientTools = ClientToolRuntime(scope) { message -> sendMcp(message) }
+
+    /** True right after a session create declared the tools, so the first connect doesn't re-send them. */
+    private var toolsDeclaredOnCreate = false
+
+    /** Set the app's client tools; declared on the next session create and on messages. */
+    fun setClientTools(handler: ClientToolHandler?) {
+        clientTools.handler = handler
+    }
+
+    private fun sendMcp(message: JsonObject) {
+        val conn = connection
+        check(conn != null && isConnected()) { "Connection is not open" }
+        conn.send(envelope(EV_CHAT, CT_MCP) { put("data", message) })
+    }
+
     /** Context for the next session create; starts as [MatrixClientConfig.context]. */
     @Volatile
     private var sessionContext: JsonObject? = config.context
@@ -202,10 +219,15 @@ class MatrixClient(
             return
         }
         try {
-            val envelope = buildOutgoing(request) ?: run {
+            val built = buildOutgoing(request) ?: run {
                 emitError(MatrixError("No message to send", MatrixErrorCode.MESSAGE))
                 return
             }
+            // Every user message names the tool list by hash (the full list after a reconnect)
+            val envelope = clientTools.declarationsForSend()?.let { decl ->
+                val data = built["data"] as? JsonObject ?: return@let built
+                JsonObject(built + ("data" to JsonObject(data + ("client_tools" to decl))))
+            } ?: built
             MatrixLog.d("-> ${envelope.str("ev")}/${envelope.str("ct")}" + (if (request.toolId != null) " tool=${MatrixLog.id(request.toolId)}" else ""))
             conn.send(envelope)
             watchForAck()
@@ -256,6 +278,8 @@ class MatrixClient(
 
     /** Tear down the transport and timers (keeps credentials). */
     fun endSession() {
+        // Pending client-tool calls get -32800 before the socket closes (server never waits on us)
+        clientTools.abortAll()
         ackJob?.cancel()
         validationLossJob?.cancel()
         closeConnection()
@@ -280,7 +304,13 @@ class MatrixClient(
     private suspend fun createNewSession(): SessionResponse {
         val ctx = sessionContext
         val profile = ctx?.get("profile") as? JsonObject
-        val extra = ctx?.filterKeys { it != "profile" && it != "referer" }.orEmpty()
+        val extra = ctx?.filterKeys { it != "profile" && it != "referer" }.orEmpty().toMutableMap()
+        // Client tools (web SDK protocol): capabilities always, the tool list when the app has tools
+        clientTools.declarationsForCreate()?.let {
+            extra["client_capabilities"] = clientTools.capabilities()
+            extra["client_tools"] = it
+            toolsDeclaredOnCreate = true
+        }
         val request = SessionCreateRequest(
             userId = tokens.userId ?: config.userId,
             userContext = profile,
@@ -294,6 +324,9 @@ class MatrixClient(
 
     private fun initializeConnection(id: String) {
         closeConnection()
+        // A resumed session or a reconnect re-declares the tools on its first message
+        if (!toolsDeclaredOnCreate) clientTools.markUnsent()
+        toolsDeclaredOnCreate = false
         check(id.isNotBlank() && !tokens.sessToken.isNullOrBlank()) { "Session ID or sess token not found" }
         sessionId = id
         val conn: MatrixConnection = if (connectionType == HTTP_STREAM) {
@@ -414,6 +447,7 @@ class MatrixClient(
                 }
                 CT_TOOL -> if (data.str("tool_id") != null && id != null) emitToolCall(id, ts, data)
                 CT_AUDIO_TRANSCRIPT -> data.str("text")?.let { emit(MatrixEvent.AudioTranscript(it)) }
+                CT_MCP -> clientTools.handle(data)
             }
             EV_STREAM -> when (ct) {
                 CT_TEXT -> {
@@ -429,6 +463,7 @@ class MatrixClient(
                 CT_TOOL -> if (data.str("tool_id") != null && id != null) emitToolCall(id, ts, data)
                 CT_TOOL_START -> emit(MatrixEvent.ToolStart(id ?: System.currentTimeMillis().toString(), data.str("name")))
                 CT_TOOL_END -> emit(MatrixEvent.ToolEnd(id ?: System.currentTimeMillis().toString(), data.str("name")))
+                CT_MCP -> clientTools.handle(data)
             }
             EV_EOS -> emit(MatrixEvent.EndOfStream)
             EV_PING -> safeSend(conn, envelope(EV_PONG))
@@ -855,5 +890,6 @@ class MatrixClient(
         private const val CT_AUDIO_TRANSCRIPT = "audio_transcript"
         private const val CT_TOOL_START = "tool_start"
         private const val CT_TOOL_END = "tool_end"
+        private const val CT_MCP = "mcp"
     }
 }

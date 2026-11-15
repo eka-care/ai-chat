@@ -47,6 +47,7 @@ afterEvaluate {
 
 dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+    testImplementation(libs.junit)
     // api: callers receive JsonObject payloads (tool inputs / tool_result) from the client.
     api("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
