@@ -46,7 +46,8 @@ data class MatrixClientConfig(
     /** Override only for custom hosts; defaults follow [environment]. */
     val baseUrl: String = environment.baseUrl,
     val wsUrl: String = environment.wsUrl,
-    val channel: String = "web",
+    /** Sent as x-channel on every call. The default came from the web widget this ports. */
+    val channel: String = "android",
     /** Session context: profile/intent/etc. (TContext). */
     val context: JsonObject? = null,
     /** Fallback only - the user_id from the token exchange wins. */
