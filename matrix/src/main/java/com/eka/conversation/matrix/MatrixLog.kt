@@ -18,6 +18,7 @@ internal object MatrixLog {
 
     fun d(msg: String) { if (enabled) Log.d(TAG, msg) }
     fun w(msg: String) { if (enabled) Log.w(TAG, msg) }
+    fun e(msg: String, t: Throwable) { if (enabled) Log.e(TAG, msg, t) }
 
     val isEnabled get() = enabled
 

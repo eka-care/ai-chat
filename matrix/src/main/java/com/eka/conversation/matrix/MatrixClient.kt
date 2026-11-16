@@ -67,6 +67,9 @@ class MatrixClient(
     private val onTokenExchange: (TokenExchangeResponse) -> Unit,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+
+    /** Debuggable builds crash on our own bugs; release keeps recovering. See [rethrowIfFatal]. */
+    var strictMode: Boolean = MatrixLog.isEnabled
     private val http = MatrixHttpClient(config.baseUrl, config.agentId, config.channel)
 
     /** App functions the agent can call (get_patient_context...). See [ClientToolHandler]. */
@@ -152,7 +155,7 @@ class MatrixClient(
         } catch (e: kotlinx.coroutines.CancellationException) {
             throw e
         } catch (e: Throwable) {
-            MatrixLog.w("warm-up failed: ${e.message}")
+            rethrowIfFatal("warm-up", e)
         }
     }
 
@@ -182,7 +185,7 @@ class MatrixClient(
                 MatrixLog.d("agent config: name=${cfg?.name}, connectivity=${cfg?.connectivity}, allowed=${cfg?.allowed}")
             }
         } catch (e: Throwable) {
-            MatrixLog.w("agent config failed: ${e.message}")
+            rethrowIfFatal("agent config", e)
             null
         }
     }
@@ -203,7 +206,7 @@ class MatrixClient(
         } catch (e: kotlinx.coroutines.CancellationException) {
             throw e // the caller moved on to another session; not an error
         } catch (e: Throwable) {
-            MatrixLog.w("startSession failed: ${e.message} (status=${(e as? MatrixApiException)?.status})")
+            rethrowIfFatal("startSession (status=${(e as? MatrixApiException)?.status})", e)
             emitError(e)
             throw e
         }
@@ -232,6 +235,7 @@ class MatrixClient(
             conn.send(envelope)
             watchForAck()
         } catch (e: Throwable) {
+            rethrowIfFatal("sendMessage", e)
             emitError(MatrixError(e.message ?: "Failed to send message", MatrixErrorCode.CONNECTION))
         }
     }
@@ -411,6 +415,7 @@ class MatrixClient(
         try {
             conn.send(msg)
         } catch (e: Throwable) {
+            rethrowIfFatal("send", e)
             emitError(MatrixError(e.message ?: "Send failed", MatrixErrorCode.CONNECTION))
         }
     }
@@ -437,6 +442,7 @@ class MatrixClient(
                             val ids = files.upload(urls)
                             sendMessage(OutgoingRequest(urls = ids))
                         } catch (e: Throwable) {
+                            rethrowIfFatal("file upload", e)
                             emitError(MatrixError(e.message ?: "Failed to upload files", MatrixErrorCode.FILE))
                         }
                     }
@@ -638,6 +644,7 @@ class MatrixClient(
             tokens.refresh()
             sessionId?.let { initializeConnection(it) }
         } catch (e: Throwable) {
+            rethrowIfFatal("credential recovery", e)
             val status = (e as? MatrixApiException)?.status
             if (status != 401 && status != 403) {
                 emitError(MatrixError(e.message ?: "Failed to refresh authentication", MatrixErrorCode.SESSION))
@@ -661,6 +668,7 @@ class MatrixClient(
             val s = api.retrieveSession(sid)
             initializeConnection(s.sessionId.ifBlank { sid })
         } catch (e: Throwable) {
+            rethrowIfFatal("session recovery", e)
             val status = (e as? MatrixApiException)?.status
             if (status == 401 || status == 403) {
                 clearUser()
@@ -713,10 +721,23 @@ class MatrixClient(
             try {
                 initializeConnection(sid)
             } catch (e: Throwable) {
+                rethrowIfFatal("reconnect after auth refresh", e)
                 emitError(MatrixError(e.message ?: "Failed to reset connection after auth refresh", MatrixErrorCode.CONNECTION))
             }
         }
         return bearer
+    }
+
+    /**
+     * Policy for every broad catch here. Cancellation belongs to the caller, so it is rethrown:
+     * swallowing it keeps work alive after a screen closes or a session is replaced. Everything
+     * else is logged with its stack trace, and in a debuggable build anything that is not a
+     * transport or server failure is our own bug, so it crashes instead of looking like a reconnect.
+     */
+    private fun rethrowIfFatal(what: String, e: Throwable) {
+        if (e is kotlinx.coroutines.CancellationException) throw e
+        MatrixLog.e("$what failed: ${e.message}", e)
+        if (strictMode && e !is java.io.IOException && e !is MatrixApiException) throw e
     }
 
     private fun clearUser() {
